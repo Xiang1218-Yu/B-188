@@ -99,9 +99,11 @@ function renderSurveyForm(survey) {
             });
             questionHtml += `</div>`;
         } else if (question.type === 'single') {
-            // 单选题：渲染为选项列表
+            // 单选题：渲染为卡片式选项
             questionHtml += `<div class="survey-fill-single-group">`;
-            question.options.forEach(opt => {
+            question.options.forEach((opt, optIdx) => {
+                // 用字母序号标记选项
+                const letter = String.fromCharCode(65 + optIdx);
                 questionHtml += `
                     <label class="survey-fill-single-option">
                         <input type="radio" name="${question.id}" value="${opt}">

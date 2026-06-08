@@ -1325,26 +1325,45 @@ input, select { font-family: inherit; }
 
 /* 单选题选项 */
 .survey-fill-single-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.625rem;
 }
 
 .survey-fill-single-option {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: center;
+    gap: 0.5rem;
     padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.875rem;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: white;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+
+.survey-fill-single-option::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity 0.25s;
 }
 
 .survey-fill-single-option:hover {
     border-color: var(--primary);
+    color: var(--primary);
     background: #eef2ff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
 }
 
 .survey-fill-single-option input {
@@ -1352,17 +1371,22 @@ input, select { font-family: inherit; }
 }
 
 .survey-fill-radio-dot {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--border-color);
     border-radius: 50%;
     position: relative;
     flex-shrink: 0;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.survey-fill-single-option:hover .survey-fill-radio-dot {
+    border-color: var(--primary);
 }
 
 .survey-fill-single-option input:checked ~ .survey-fill-radio-dot {
-    border-color: var(--primary);
+    border-color: white;
+    background: white;
 }
 
 .survey-fill-single-option input:checked ~ .survey-fill-radio-dot::after {
@@ -1371,15 +1395,33 @@ input, select { font-family: inherit; }
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     background: var(--primary);
     border-radius: 50%;
 }
 
 .survey-fill-single-option input:checked ~ span:last-child {
-    color: var(--primary);
-    font-weight: 500;
+    color: white;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.survey-fill-single-option:has(input:checked) {
+    border-color: var(--primary);
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    transform: translateY(-1px);
+}
+
+.survey-fill-single-option:has(input:checked) .survey-fill-radio-dot {
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.survey-fill-single-option:has(input:checked) .survey-fill-radio-dot::after {
+    background: white;
 }
 
 /* 文本题文本域 */
@@ -1409,9 +1451,13 @@ input, select { font-family: inherit; }
     color: var(--danger);
 }
 
-.survey-fill-question-error .survey-fill-rating-btn,
+.survey-fill-question-error .survey-fill-rating-btn {
+    border-color: #fca5a5;
+}
+
 .survey-fill-question-error .survey-fill-single-option {
     border-color: #fca5a5;
+    background: #fef2f2;
 }
 
 @keyframes shakeError {
@@ -1453,6 +1499,10 @@ input, select { font-family: inherit; }
 
     .survey-fill-rating-group {
         flex-direction: column;
+    }
+
+    .survey-fill-single-group {
+        grid-template-columns: 1fr 1fr;
     }
 
     .survey-option-label {

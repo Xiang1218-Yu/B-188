@@ -598,6 +598,12 @@ let surveyState = {
 // 当前创建问卷时的临时题目列表
 let tempQuestions = [];
 
+// 当前是否为编辑模式
+let isEditingSurvey = false;
+
+// 正在编辑的问卷ID
+let editingSurveyId = null;
+
 // --- 初始化问卷模块 ---
 function initSurveyModule() {
     renderSurveyTable();
@@ -636,6 +642,7 @@ function renderSurveyTable() {
             <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             <td>${s.createdAt}</td>
             <td class="action-btns">
+                <button class="edit" onclick="openSurveyEditModal('${s.id}')" title="编辑问卷"><i class="fa-solid fa-pen-to-square"></i></button>
                 <button class="edit" onclick="openSurveySendModal('${s.id}')" title="发送问卷"><i class="fa-solid fa-paper-plane"></i></button>
                 <button class="edit" onclick="openSurveyStatsModal('${s.id}')" title="查看统计"><i class="fa-solid fa-chart-bar"></i></button>
                 <button class="edit" onclick="toggleSurveyStatus('${s.id}')" title="${s.status === 'active' ? '关闭问卷' : '开启问卷'}"><i class="fa-solid fa-${s.status === 'active' ? 'pause' : 'play'}"></i></button>
@@ -699,8 +706,14 @@ function renderSurveyPagination(totalItems) {
 
 // --- 创建问卷弹窗 ---
 window.openSurveyCreateModal = function() {
+    isEditingSurvey = false;
+    editingSurveyId = null;
+
     const modal = document.getElementById('surveyCreateModal');
     modal.classList.add('active');
+
+    // 更新弹窗标题为创建模式
+    document.getElementById('surveyModalTitle').innerHTML = '<i class="fa-solid fa-clipboard-list" style="color:var(--primary);"></i> 创建满意度问卷';
 
     // 重置表单
     document.getElementById('surveyTitle').value = '';
@@ -711,6 +724,34 @@ window.openSurveyCreateModal = function() {
         { id: generateQuestionId(), type: 'rating', title: '您对我们产品/服务的总体满意度', options: ['非常不满意','不满意','一般','满意','非常满意'] },
         { id: generateQuestionId(), type: 'text', title: '您对我们有哪些改进建议？' }
     ];
+    renderTempQuestions();
+};
+
+// --- 编辑问卷弹窗 ---
+window.openSurveyEditModal = function(surveyId) {
+    const survey = surveys.find(s => s.id === surveyId);
+    if (!survey) return;
+
+    isEditingSurvey = true;
+    editingSurveyId = surveyId;
+
+    const modal = document.getElementById('surveyCreateModal');
+    modal.classList.add('active');
+
+    // 更新弹窗标题为编辑模式
+    document.getElementById('surveyModalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square" style="color:var(--primary);"></i> 编辑满意度问卷';
+
+    // 回填表单数据
+    document.getElementById('surveyTitle').value = survey.title;
+    document.getElementById('surveyDesc').value = survey.description || '';
+
+    // 将问卷题目转换为临时题目格式
+    tempQuestions = survey.questions.map(q => ({
+        id: generateQuestionId(),
+        type: q.type,
+        title: q.title,
+        options: q.options ? [...q.options] : []
+    }));
     renderTempQuestions();
 };
 
@@ -842,29 +883,51 @@ window.saveSurvey = function() {
         return;
     }
 
-    // 生成问卷ID
-    const newId = 'SV' + String(surveys.length + 1).padStart(3, '0');
+    if (isEditingSurvey && editingSurveyId) {
+        // 编辑模式：更新已有问卷
+        const index = surveys.findIndex(s => s.id === editingSurveyId);
+        if (index !== -1) {
+            surveys[index].title = title;
+            surveys[index].description = desc;
+            surveys[index].questions = tempQuestions.map((q, i) => ({
+                id: 'q' + (i + 1),
+                type: q.type,
+                title: q.title,
+                options: q.type !== 'text' ? q.options : undefined
+            }));
+            saveSurveysToStorage();
+            closeSurveyCreateModal();
+            renderSurveyTable();
+            showToast('问卷已更新', 'success');
+        }
+    } else {
+        // 创建模式：新建问卷
+        const newId = 'SV' + String(surveys.length + 1).padStart(3, '0');
 
-    // 构建问卷对象
-    const survey = {
-        id: newId,
-        title: title,
-        description: desc,
-        status: 'active',
-        createdAt: new Date().toLocaleDateString('zh-CN'),
-        questions: tempQuestions.map((q, i) => ({
-            id: 'q' + (i + 1),
-            type: q.type,
-            title: q.title,
-            options: q.type !== 'text' ? q.options : undefined
-        }))
-    };
+        const survey = {
+            id: newId,
+            title: title,
+            description: desc,
+            status: 'active',
+            createdAt: new Date().toLocaleDateString('zh-CN'),
+            questions: tempQuestions.map((q, i) => ({
+                id: 'q' + (i + 1),
+                type: q.type,
+                title: q.title,
+                options: q.type !== 'text' ? q.options : undefined
+            }))
+        };
 
-    surveys.unshift(survey);
-    saveSurveysToStorage();
-    closeSurveyCreateModal();
-    renderSurveyTable();
-    showToast('问卷创建成功', 'success');
+        surveys.unshift(survey);
+        saveSurveysToStorage();
+        closeSurveyCreateModal();
+        renderSurveyTable();
+        showToast('问卷创建成功', 'success');
+    }
+
+    // 重置编辑状态
+    isEditingSurvey = false;
+    editingSurveyId = null;
 };
 
 // --- 发送问卷弹窗 ---
