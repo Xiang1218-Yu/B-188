@@ -128,9 +128,15 @@ function initNavigation() {
             // Update Title
             const titleMap = {
                 'dashboard': '数据总览',
-                'customers': '客户管理'
+                'customers': '客户管理',
+                'surveys': '满意度调查'
             };
             pageTitle.innerText = titleMap[target];
+            
+            // 切换到问卷页面时渲染列表
+            if (target === 'surveys') {
+                renderSurveyTable();
+            }
         });
     });
 }
@@ -503,4 +509,630 @@ window.showToast = function(message, type = 'info') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+};
+
+
+// =====================================================
+// 满意度调查问卷功能模块
+// =====================================================
+
+// --- 问卷数据状态 ---
+let surveys = []; // 问卷列表
+let surveyResponses = []; // 问卷回收数据
+let currentSurveyId = null; // 当前操作的问卷ID
+let additionalQuestionCount = 0; // 额外问题计数器
+let surveyState = {
+    currentPage: 1,
+    itemsPerPage: 5,
+    query: ''
+};
+let scoreDistributionChart = null; // 评分分布图表实例
+
+// --- 初始化问卷模块 ---
+document.addEventListener('DOMContentLoaded', () => {
+    // 从 localStorage 加载问卷数据
+    loadSurveysFromStorage();
+    
+    // 初始化导航标题映射
+    const titleMap = {
+        'dashboard': '数据总览',
+        'customers': '客户管理',
+        'surveys': '满意度调查'
+    };
+    // 注意：initNavigation 函数中已经有 titleMap，需要确保 surveys 已添加
+    // 这里通过搜索框监听来初始化问卷列表
+    
+    // 问卷搜索监听
+    const surveySearchInput = document.getElementById('surveySearch');
+    if (surveySearchInput) {
+        surveySearchInput.addEventListener('input', (e) => {
+            surveyState.query = e.target.value;
+            surveyState.currentPage = 1;
+            renderSurveyTable();
+        });
+    }
+});
+
+// --- 从 localStorage 加载问卷数据 ---
+function loadSurveysFromStorage() {
+    try {
+        const savedSurveys = localStorage.getItem('crm_surveys');
+        const savedResponses = localStorage.getItem('crm_survey_responses');
+        
+        if (savedSurveys) {
+            const parsed = JSON.parse(savedSurveys);
+            // 数据校验：确保是数组且每个元素有基本属性
+            if (Array.isArray(parsed)) {
+                surveys = parsed.filter(s => s && typeof s === 'object' && s.id && s.name);
+            } else {
+                surveys = [];
+            }
+        }
+        
+        // 如果没有有效数据，初始化示例数据
+        if (!surveys || surveys.length === 0) {
+            surveys = [
+                {
+                    id: 'SV001',
+                    name: '2026年第一季度客户满意度调查',
+                    description: '感谢您参与本次满意度调查，您的反馈将帮助我们持续改进服务质量。',
+                    questions: [
+                        { id: 'q1', type: 'rating', text: '整体满意度评分（1-5分）' },
+                        { id: 'q2', type: 'text', text: '您对我们产品最满意的地方是什么？' }
+                    ],
+                    createdAt: '2026-01-15 10:30:00',
+                    status: 'active'
+                }
+            ];
+            saveSurveysToStorage();
+        }
+        
+        if (savedResponses) {
+            const parsed = JSON.parse(savedResponses);
+            // 数据校验
+            if (Array.isArray(parsed)) {
+                surveyResponses = parsed.filter(r => r && typeof r === 'object' && r.surveyId);
+            } else {
+                surveyResponses = [];
+            }
+        }
+        
+        // 如果没有有效回收数据，初始化示例数据
+        if (!surveyResponses || surveyResponses.length === 0) {
+            surveyResponses = [
+                { id: 1, surveyId: 'SV001', score: 5, feedback: '产品质量很好，服务也很专业！', submittedAt: '2026-01-16 09:20:00' },
+                { id: 2, surveyId: 'SV001', score: 4, feedback: '整体满意，希望交货速度能再快一些。', submittedAt: '2026-01-18 14:35:00' },
+                { id: 3, surveyId: 'SV001', score: 5, feedback: '技术支持响应很快，问题解决及时。', submittedAt: '2026-01-20 11:10:00' },
+                { id: 4, surveyId: 'SV001', score: 3, feedback: '产品还可以，但价格有点偏高。', submittedAt: '2026-01-22 16:45:00' },
+                { id: 5, surveyId: 'SV001', score: 4, feedback: '合作愉快，期待长期合作。', submittedAt: '2026-01-23 08:50:00' }
+            ];
+            saveSurveyResponsesToStorage();
+        }
+    } catch (e) {
+        console.error('加载问卷数据失败:', e);
+        surveys = [];
+        surveyResponses = [];
+    }
+}
+
+// --- 保存问卷数据到 localStorage ---
+function saveSurveysToStorage() {
+    try {
+        localStorage.setItem('crm_surveys', JSON.stringify(surveys));
+    } catch (e) {
+        console.error('保存问卷数据失败:', e);
+    }
+}
+
+// --- 保存问卷回收数据到 localStorage ---
+function saveSurveyResponsesToStorage() {
+    try {
+        localStorage.setItem('crm_survey_responses', JSON.stringify(surveyResponses));
+    } catch (e) {
+        console.error('保存问卷回收数据失败:', e);
+    }
+}
+
+// --- 渲染问卷列表表格 ---
+function renderSurveyTable() {
+    const tbody = document.getElementById('surveyTableBody');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    // 过滤搜索（添加防御性检查，避免数据异常时报错）
+    const filtered = surveys.filter(s => {
+        const surveyName = s.name || '';
+        const query = surveyState.query || '';
+        return surveyName.toLowerCase().includes(query.toLowerCase());
+    });
+    
+    document.getElementById('surveyTotalCount').innerText = filtered.length;
+    
+    // 分页逻辑
+    const start = (surveyState.currentPage - 1) * surveyState.itemsPerPage;
+    const end = start + surveyState.itemsPerPage;
+    const paginatedItems = filtered.slice(start, end);
+    
+    paginatedItems.forEach(survey => {
+        // 计算该问卷的回收数量
+        const responseCount = surveyResponses.filter(r => r.surveyId === survey.id).length;
+        const statusClass = survey.status === 'active' ? 'active' : 'inactive';
+        const statusText = survey.status === 'active' ? '进行中' : '已结束';
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>#${survey.id}</td>
+            <td><strong>${survey.name}</strong></td>
+            <td>${survey.createdAt}</td>
+            <td><span class="response-count">${responseCount} 份</span></td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td class="action-btns">
+                <button class="edit" onclick="showSurveyLink('${survey.id}')" title="获取问卷链接">
+                    <i class="fa-solid fa-link"></i>
+                </button>
+                <button class="edit" onclick="viewSurveyStats('${survey.id}')" title="查看统计">
+                    <i class="fa-solid fa-chart-simple"></i>
+                </button>
+                <button class="delete" onclick="deleteSurvey('${survey.id}')" title="删除">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    
+    renderSurveyPagination(filtered.length);
+}
+
+// --- 渲染问卷分页 ---
+function renderSurveyPagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / surveyState.itemsPerPage);
+    const container = document.getElementById('surveyPageBtns');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // 上一页按钮
+    const prevBtn = document.createElement('button');
+    prevBtn.className = `page-btn ${surveyState.currentPage === 1 ? 'disabled' : ''}`;
+    prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+    prevBtn.onclick = () => {
+        if (surveyState.currentPage > 1) {
+            changeSurveyPage(surveyState.currentPage - 1);
+        } else {
+            showToast('已经是第一页了', 'info');
+        }
+    };
+    container.appendChild(prevBtn);
+    
+    // 页码按钮
+    for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.className = `page-btn ${surveyState.currentPage === i ? 'active' : ''}`;
+        btn.innerText = i;
+        btn.onclick = () => changeSurveyPage(i);
+        container.appendChild(btn);
+    }
+    
+    // 下一页按钮
+    const nextBtn = document.createElement('button');
+    nextBtn.className = `page-btn ${surveyState.currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}`;
+    nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+    nextBtn.onclick = () => {
+        if (surveyState.currentPage < totalPages) {
+            changeSurveyPage(surveyState.currentPage + 1);
+        } else {
+            showToast('已经是最后一页了', 'info');
+        }
+    };
+    container.appendChild(nextBtn);
+    
+    // 更新分页文本
+    const rangeStart = totalItems === 0 ? 0 : (surveyState.currentPage - 1) * surveyState.itemsPerPage + 1;
+    const rangeEnd = Math.min(surveyState.currentPage * surveyState.itemsPerPage, totalItems);
+    const paginationText = document.querySelector('#surveys-view .pagination span:first-child');
+    if (paginationText && paginationText.childNodes[0]) {
+        paginationText.childNodes[0].nodeValue = `显示 ${rangeStart}-${rangeEnd} 条，共 `;
+    }
+}
+
+// --- 切换问卷分页 ---
+window.changeSurveyPage = function(page) {
+    const filteredCount = surveys.filter(s => {
+        const surveyName = s.name || '';
+        const query = surveyState.query || '';
+        return surveyName.toLowerCase().includes(query.toLowerCase());
+    }).length;
+    const totalPages = Math.ceil(filteredCount / surveyState.itemsPerPage);
+    
+    if (page < 1 || page > totalPages) return;
+    
+    surveyState.currentPage = page;
+    renderSurveyTable();
+};
+
+// --- 打开创建问卷模态框 ---
+window.openSurveyModal = function() {
+    const modal = document.getElementById('surveyModal');
+    if (!modal) return;
+    
+    // 重置表单
+    document.getElementById('surveyForm').reset();
+    document.getElementById('surveyId').value = '';
+    additionalQuestionCount = 0;
+    document.getElementById('additionalQuestions').innerHTML = '';
+    
+    modal.classList.add('active');
+};
+
+// --- 关闭创建问卷模态框 ---
+window.closeSurveyModal = function() {
+    document.getElementById('surveyModal').classList.remove('active');
+};
+
+// --- 添加额外问题 ---
+window.addSurveyQuestion = function() {
+    additionalQuestionCount++;
+    const container = document.getElementById('additionalQuestions');
+    
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'question-item';
+    questionDiv.id = `question-${additionalQuestionCount}`;
+    questionDiv.innerHTML = `
+        <span class="question-number">${additionalQuestionCount + 1}.</span>
+        <input type="text" class="question-input" placeholder="请输入问题内容" id="questionText-${additionalQuestionCount}">
+        <span class="question-type">文本题</span>
+        <button type="button" class="remove-question-btn" onclick="removeSurveyQuestion(${additionalQuestionCount})">
+            <i class="fa-solid fa-trash-can"></i>
+        </button>
+    `;
+    
+    container.appendChild(questionDiv);
+};
+
+// --- 删除额外问题 ---
+window.removeSurveyQuestion = function(questionId) {
+    const questionEl = document.getElementById(`question-${questionId}`);
+    if (questionEl) {
+        questionEl.remove();
+    }
+};
+
+// --- 保存问卷 ---
+window.saveSurvey = function() {
+    const name = document.getElementById('surveyName').value.trim();
+    const description = document.getElementById('surveyDescription').value.trim();
+    
+    if (!name) {
+        showToast('请输入问卷名称', 'error');
+        return;
+    }
+    
+    // 收集额外问题
+    const questions = [
+        { id: 'q1', type: 'rating', text: '整体满意度评分（1-5分）' }
+    ];
+    
+    const questionInputs = document.querySelectorAll('#additionalQuestions .question-item');
+    questionInputs.forEach((item, index) => {
+        const input = item.querySelector('.question-input');
+        if (input && input.value.trim()) {
+            questions.push({
+                id: `q${index + 2}`,
+                type: 'text',
+                text: input.value.trim()
+            });
+        }
+    });
+    
+    // 生成问卷ID（找最大ID+1，避免删除后重复）
+    let maxNum = 0;
+    surveys.forEach(s => {
+        const match = s.id && s.id.match(/SV(\d+)/);
+        if (match) {
+            const num = parseInt(match[1]);
+            if (num > maxNum) maxNum = num;
+        }
+    });
+    const newId = 'SV' + String(maxNum + 1).padStart(3, '0');
+    
+    // 获取当前时间
+    const now = new Date();
+    const createdAt = now.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    }).replace(/\//g, '-');
+    
+    // 创建新问卷
+    const newSurvey = {
+        id: newId,
+        name: name,
+        description: description,
+        questions: questions,
+        createdAt: createdAt,
+        status: 'active'
+    };
+    
+    surveys.unshift(newSurvey);
+    saveSurveysToStorage();
+    
+    closeSurveyModal();
+    renderSurveyTable();
+    showToast('问卷创建成功', 'success');
+};
+
+// --- 显示问卷链接 ---
+window.showSurveyLink = function(surveyId) {
+    const modal = document.getElementById('surveyLinkModal');
+    if (!modal) return;
+    
+    currentSurveyId = surveyId;
+    
+    // 生成问卷链接（使用当前域名）
+    const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
+    const surveyLink = `${baseUrl}survey.html?id=${surveyId}`;
+    
+    document.getElementById('surveyLink').value = surveyLink;
+    
+    modal.classList.add('active');
+};
+
+// --- 关闭问卷链接模态框 ---
+window.closeSurveyLinkModal = function() {
+    document.getElementById('surveyLinkModal').classList.remove('active');
+};
+
+// --- 复制问卷链接 ---
+window.copySurveyLink = function() {
+    const linkInput = document.getElementById('surveyLink');
+    linkInput.select();
+    
+    try {
+        document.execCommand('copy');
+        showToast('链接已复制到剪贴板', 'success');
+    } catch (e) {
+        showToast('复制失败，请手动复制', 'error');
+    }
+};
+
+// --- 删除问卷确认 ---
+window.deleteSurvey = function(surveyId) {
+    const survey = surveys.find(s => s.id === surveyId);
+    if (!survey) return;
+    
+    pendingDeleteId = surveyId;
+    document.getElementById('confirmMessage').innerText = `确定要删除问卷"${survey.name}"吗？删除后无法恢复，相关回收数据也将被删除。`;
+    document.getElementById('confirmActionBtn').innerText = '确认删除';
+    document.getElementById('confirmModal').classList.add('active');
+    
+    // 重新设置确认按钮的点击事件
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const newBtn = actionBtn.cloneNode(true);
+    actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+    
+    newBtn.addEventListener('click', () => {
+        performDeleteSurvey(pendingDeleteId);
+    });
+};
+
+// --- 执行删除问卷 ---
+function performDeleteSurvey(surveyId) {
+    // 删除问卷
+    surveys = surveys.filter(s => s.id !== surveyId);
+    // 删除相关回收数据
+    surveyResponses = surveyResponses.filter(r => r.surveyId !== surveyId);
+    
+    saveSurveysToStorage();
+    saveSurveyResponsesToStorage();
+    
+    renderSurveyTable();
+    showToast('问卷已删除', 'warning');
+    closeConfirmModal();
+}
+
+// --- 查看问卷统计 ---
+window.viewSurveyStats = function(surveyId) {
+    const modal = document.getElementById('surveyStatsModal');
+    if (!modal) return;
+    
+    const survey = surveys.find(s => s.id === surveyId);
+    if (!survey) {
+        showToast('问卷不存在', 'error');
+        return;
+    }
+    
+    currentSurveyId = surveyId;
+    
+    // 设置标题
+    document.getElementById('surveyStatsTitle').innerText = `${survey.name} - 统计分析`;
+    
+    // 获取该问卷的所有回收数据
+    const responses = surveyResponses.filter(r => r.surveyId === surveyId);
+    const totalResponses = responses.length;
+    
+    // 计算统计数据
+    let avgScore = 0;
+    let goodCount = 0;
+    const scoreDistribution = [0, 0, 0, 0, 0]; // 1-5分的数量
+    
+    if (totalResponses > 0) {
+        let totalScore = 0;
+        responses.forEach(r => {
+            const score = parseInt(r.score) || 0;
+            totalScore += score;
+            if (score >= 4) goodCount++;
+            if (score >= 1 && score <= 5) {
+                scoreDistribution[score - 1]++;
+            }
+        });
+        avgScore = (totalScore / totalResponses).toFixed(1);
+    }
+    
+    const goodRate = totalResponses > 0 ? Math.round((goodCount / totalResponses) * 100) : 0;
+    
+    // 设置统计卡片数据
+    document.getElementById('statsTotalResponses').setAttribute('data-target', totalResponses);
+    document.getElementById('statsAvgScore').setAttribute('data-target', avgScore);
+    document.getElementById('statsGoodRate').setAttribute('data-target', goodRate);
+    
+    // 重置计数器并启动动画
+    document.getElementById('statsTotalResponses').innerText = '0';
+    document.getElementById('statsAvgScore').innerText = '0';
+    document.getElementById('statsGoodRate').innerText = '0%';
+    
+    // 启动计数器动画
+    animateCounter('statsTotalResponses', totalResponses, false);
+    animateCounter('statsAvgScore', parseFloat(avgScore), true);
+    animateCounter('statsGoodRate', goodRate, false, true);
+    
+    // 渲染评分分布图表
+    renderScoreDistributionChart(scoreDistribution);
+    
+    // 渲染反馈列表
+    renderFeedbackList(responses);
+    
+    modal.classList.add('active');
+};
+
+// --- 计数器动画 ---
+function animateCounter(elementId, target, isFloat = false, isPercent = false) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const duration = 1500; // ms
+    const steps = 60;
+    const stepValue = target / steps;
+    let current = 0;
+    let step = 0;
+    
+    const timer = setInterval(() => {
+        step++;
+        current += stepValue;
+        
+        if (step >= steps) {
+            current = target;
+            clearInterval(timer);
+        }
+        
+        if (isFloat) {
+            element.innerText = parseFloat(current).toFixed(1);
+        } else if (isPercent) {
+            element.innerText = Math.round(current) + '%';
+        } else {
+            element.innerText = Math.ceil(current);
+        }
+    }, duration / steps);
+}
+
+// --- 渲染评分分布图表 ---
+function renderScoreDistributionChart(distribution) {
+    const ctx = document.getElementById('scoreDistributionChart');
+    if (!ctx) return;
+    
+    // 如果已有图表实例，先销毁
+    if (scoreDistributionChart) {
+        scoreDistributionChart.destroy();
+    }
+    
+    scoreDistributionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['1分', '2分', '3分', '4分', '5分'],
+            datasets: [{
+                label: '反馈数量',
+                data: distribution,
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(234, 179, 8, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(79, 70, 229, 0.7)'
+                ],
+                borderColor: [
+                    'rgb(239, 68, 68)',
+                    'rgb(245, 158, 11)',
+                    'rgb(234, 179, 8)',
+                    'rgb(16, 185, 129)',
+                    'rgb(79, 70, 229)'
+                ],
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+// --- 渲染反馈列表 ---
+function renderFeedbackList(responses) {
+    const container = document.getElementById('feedbackList');
+    if (!container) return;
+    
+    if (responses.length === 0) {
+        container.innerHTML = '<p class="no-data">暂无反馈数据</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    // 按时间倒序排列
+    const sortedResponses = [...responses].sort((a, b) => 
+        new Date(b.submittedAt) - new Date(a.submittedAt)
+    );
+    
+    sortedResponses.forEach(response => {
+        const feedbackItem = document.createElement('div');
+        feedbackItem.className = 'feedback-item';
+        
+        // 生成星级显示
+        let starsHtml = '';
+        const score = parseInt(response.score) || 0;
+        for (let i = 1; i <= 5; i++) {
+            if (i <= score) {
+                starsHtml += '<i class="fa-solid fa-star text-warning"></i>';
+            } else {
+                starsHtml += '<i class="fa-regular fa-star text-muted"></i>';
+            }
+        }
+        
+        feedbackItem.innerHTML = `
+            <div class="feedback-header">
+                <div class="feedback-stars">${starsHtml}</div>
+                <span class="feedback-time">${response.submittedAt}</span>
+            </div>
+            <div class="feedback-content">
+                ${response.feedback ? response.feedback : '<span class="no-feedback">用户未填写文字反馈</span>'}
+            </div>
+        `;
+        
+        container.appendChild(feedbackItem);
+    });
+}
+
+// --- 关闭问卷统计模态框 ---
+window.closeSurveyStatsModal = function() {
+    document.getElementById('surveyStatsModal').classList.remove('active');
+    // 销毁图表实例，释放内存
+    if (scoreDistributionChart) {
+        scoreDistributionChart.destroy();
+        scoreDistributionChart = null;
+    }
 };

@@ -34,6 +34,10 @@
           <i class="fa-solid fa-users"></i>
           <span>客户管理</span>
         </a>
+        <a href="#" class="nav-item" data-tab="surveys">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>满意度调查</span>
+        </a>
         <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
           <i class="fa-solid fa-box-open"></i>
           <span>产品列表</span>
@@ -169,6 +173,46 @@
           </div>
         </div>
       </div>
+
+      <!-- 满意度调查视图 -->
+      <div id="surveys-view" class="view-section">
+        <div class="table-controls">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="surveySearch" placeholder="搜索问卷名称...">
+          </div>
+          <button class="btn-primary" onclick="openSurveyModal()">
+            <i class="fa-solid fa-plus"></i> 创建问卷
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>问卷ID</th>
+                <th>问卷名称</th>
+                <th>创建时间</th>
+                <th>回收数量</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="surveyTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span>显示 1-10 条，共 <span id="surveyTotalCount">0</span> 条</span>
+          <div class="page-btns" id="surveyPageBtns">
+            <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -247,6 +291,123 @@
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
         <button class="btn-primary btn-danger" id="confirmActionBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建问卷模态框 -->
+  <div class="modal-overlay" id="surveyModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="surveyModalTitle">创建满意度调查问卷</h3>
+        <button class="close-btn" onclick="closeSurveyModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="surveyForm">
+          <input type="hidden" id="surveyId">
+          <div class="form-group">
+            <label>问卷名称</label>
+            <input type="text" id="surveyName" required placeholder="请输入问卷名称">
+          </div>
+          <div class="form-group">
+            <label>问卷描述</label>
+            <textarea id="surveyDescription" rows="3" placeholder="请输入问卷描述（选填）"></textarea>
+          </div>
+          <div class="form-group">
+            <label>问题设置（默认包含满意度评分题，可添加额外问题）</label>
+            <div class="question-item">
+              <span class="question-number">1.</span>
+              <span>整体满意度评分（1-5分）</span>
+              <span class="question-type">评分题</span>
+            </div>
+          </div>
+          <div id="additionalQuestions">
+            <!-- 动态添加的额外问题 -->
+          </div>
+          <button type="button" class="btn-secondary add-question-btn" onclick="addSurveyQuestion()">
+            <i class="fa-solid fa-plus"></i> 添加文字反馈问题
+          </button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveyModal()">取消</button>
+        <button class="btn-primary" onclick="saveSurvey()">创建问卷</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 问卷链接模态框 -->
+  <div class="modal-overlay" id="surveyLinkModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-link text-success"></i> 问卷填写链接</h3>
+        <button class="close-btn" onclick="closeSurveyLinkModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>将以下链接发送给客户，客户无需登录即可填写问卷：</p>
+        <div class="link-display">
+          <input type="text" id="surveyLink" readonly>
+          <button class="btn-primary copy-btn" onclick="copySurveyLink()">
+            <i class="fa-solid fa-copy"></i> 复制
+          </button>
+        </div>
+        <p class="link-tip">提示：客户点击链接后可直接填写，提交后数据将自动汇总。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeSurveyLinkModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 问卷统计详情模态框 -->
+  <div class="modal-overlay" id="surveyStatsModal">
+    <div class="modal-container large-modal">
+      <div class="modal-header">
+        <h3 id="surveyStatsTitle">问卷统计分析</h3>
+        <button class="close-btn" onclick="closeSurveyStatsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <!-- 统计概览卡片 -->
+        <div class="stats-grid stats-grid-small">
+          <div class="stat-card mini">
+            <div class="icon-box blue"><i class="fa-solid fa-reply"></i></div>
+            <div class="stat-info">
+              <h3>总回收数</h3>
+              <p class="counter" id="statsTotalResponses" data-target="0">0</p>
+            </div>
+          </div>
+          <div class="stat-card mini">
+            <div class="icon-box green"><i class="fa-solid fa-star"></i></div>
+            <div class="stat-info">
+              <h3>平均满意度</h3>
+              <p class="counter" id="statsAvgScore" data-target="0">0</p>
+            </div>
+          </div>
+          <div class="stat-card mini">
+            <div class="icon-box purple"><i class="fa-solid fa-thumbs-up"></i></div>
+            <div class="stat-info">
+              <h3>好评率（≥4分）</h3>
+              <p class="counter" id="statsGoodRate" data-target="0">0%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 满意度分布图表 -->
+        <div class="chart-card">
+          <h3><i class="fa-solid fa-chart-column"></i> 满意度评分分布</h3>
+          <canvas id="scoreDistributionChart"></canvas>
+        </div>
+
+        <!-- 文字反馈列表 -->
+        <div class="feedback-section">
+          <h3><i class="fa-solid fa-comments"></i> 客户反馈意见</h3>
+          <div class="feedback-list" id="feedbackList">
+            <!-- 动态渲染反馈列表 -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeSurveyStatsModal()">关闭</button>
       </div>
     </div>
   </div>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户满意度调查问卷</title>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Icons (BootCDN) -->
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="survey-page">
+  <div class="survey-container">
+    <!-- 问卷头部 -->
+    <div class="survey-header">
+      <div class="survey-logo">
+        <i class="fa-solid fa-layer-group"></i>
+        <h1>PDH Electronic</h1>
+      </div>
+      <p class="survey-subtitle">客户满意度调查问卷</p>
+    </div>
+
+    <!-- 问卷内容区域 -->
+    <div class="survey-card" id="surveyContent">
+      <!-- 问卷标题和描述 -->
+      <div class="survey-title-section">
+        <h2 id="surveyTitle">加载中...</h2>
+        <p id="surveyDesc">正在加载问卷信息...</p>
+      </div>
+
+      <!-- 问卷表单 -->
+      <form id="surveyForm" class="survey-form">
+        <!-- 满意度评分题 -->
+        <div class="survey-question">
+          <label class="question-label">
+            <span class="question-number">1.</span>
+            <span class="question-text">整体满意度评分</span>
+            <span class="required-mark">*</span>
+          </label>
+          <div class="rating-stars" id="ratingStars">
+            <span class="star" data-value="1"><i class="fa-regular fa-star"></i></span>
+            <span class="star" data-value="2"><i class="fa-regular fa-star"></i></span>
+            <span class="star" data-value="3"><i class="fa-regular fa-star"></i></span>
+            <span class="star" data-value="4"><i class="fa-regular fa-star"></i></span>
+            <span class="star" data-value="5"><i class="fa-regular fa-star"></i></span>
+            <span class="rating-text" id="ratingText">请选择评分</span>
+          </div>
+          <input type="hidden" id="satisfactionScore" value="">
+        </div>
+
+        <!-- 额外问题容器 -->
+        <div id="extraQuestionsContainer">
+          <!-- 动态渲染额外问题 -->
+        </div>
+
+        <!-- 提交按钮 -->
+        <div class="survey-submit">
+          <button type="button" class="btn-primary btn-large" onclick="submitSurvey()">
+            <i class="fa-solid fa-paper-plane"></i> 提交问卷
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 提交成功页面 -->
+    <div class="survey-card survey-success" id="surveySuccess" style="display: none;">
+      <div class="success-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h2>感谢您的反馈！</h2>
+      <p>您的意见对我们非常重要，我们会持续改进产品和服务质量。</p>
+      <div class="success-stats">
+        <div class="success-stat-item">
+          <i class="fa-solid fa-star text-warning"></i>
+          <span>您的评分：<strong id="submittedScore">5</strong> 分</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问卷不存在提示 -->
+    <div class="survey-card survey-error" id="surveyError" style="display: none;">
+      <div class="error-icon">
+        <i class="fa-solid fa-circle-exclamation"></i>
+      </div>
+      <h2>问卷不存在</h2>
+      <p>抱歉，您访问的问卷不存在或已失效。</p>
+      <button class="btn-primary" onclick="window.close()">
+        <i class="fa-solid fa-xmark"></i> 关闭页面
+      </button>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="survey-footer">
+      <p>&copy; 2026 PDH Electronic. All rights reserved.</p>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/survey.js"></script>
+</body>
+
+</html>
