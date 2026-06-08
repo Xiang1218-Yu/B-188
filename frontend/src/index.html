@@ -34,6 +34,10 @@
           <i class="fa-solid fa-users"></i>
           <span>客户管理</span>
         </a>
+        <a href="#" class="nav-item" data-tab="surveys">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>满意度调查</span>
+        </a>
         <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
           <i class="fa-solid fa-box-open"></i>
           <span>产品列表</span>
@@ -169,6 +173,44 @@
           </div>
         </div>
       </div>
+
+      <!-- 满意度调查视图 -->
+      <div id="surveys-view" class="view-section">
+        <div class="table-controls">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="surveySearch" placeholder="搜索问卷标题...">
+          </div>
+          <button class="btn-primary" onclick="openSurveyCreateModal()">
+            <i class="fa-solid fa-plus"></i> 创建问卷
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>问卷标题</th>
+                <th>题目数</th>
+                <th>回收量</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="surveyTableBody">
+              <!-- 由 JS 动态渲染 -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span>显示 1-10 条，共 <span id="surveyTotalCount">0</span> 条</span>
+          <div class="page-btns" id="surveyPageBtns">
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -247,6 +289,83 @@
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
         <button class="btn-primary btn-danger" id="confirmActionBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 创建问卷弹窗 -->
+  <div class="modal-overlay" id="surveyCreateModal">
+    <div class="modal-container" style="width:680px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clipboard-list" style="color:var(--primary);"></i> 创建满意度问卷</h3>
+        <button class="close-btn" onclick="closeSurveyCreateModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="max-height:65vh;overflow-y:auto;">
+        <form id="surveyForm">
+          <div class="form-group">
+            <label>问卷标题</label>
+            <input type="text" id="surveyTitle" required placeholder="例如：2026年Q2客户满意度调查">
+          </div>
+          <div class="form-group">
+            <label>问卷说明</label>
+            <textarea id="surveyDesc" rows="2" placeholder="填写问卷的简要说明（选填）" style="width:100%;padding:0.75rem;border:1px solid var(--border-color);border-radius:var(--radius-md);resize:vertical;font-family:inherit;"></textarea>
+          </div>
+          <div class="form-group">
+            <label>问卷题目</label>
+            <div id="surveyQuestionsContainer">
+              <!-- 题目列表由 JS 动态渲染 -->
+            </div>
+            <button type="button" class="btn-secondary" style="margin-top:0.75rem;width:100%;" onclick="addSurveyQuestion()">
+              <i class="fa-solid fa-plus"></i> 添加题目
+            </button>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveyCreateModal()">取消</button>
+        <button class="btn-primary" onclick="saveSurvey()">
+          <i class="fa-solid fa-check"></i> 保存问卷
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 发送问卷弹窗 -->
+  <div class="modal-overlay" id="surveySendModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-paper-plane" style="color:var(--primary);"></i> 发送问卷</h3>
+        <button class="close-btn" onclick="closeSurveySendModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:1rem;color:var(--text-muted);">复制以下链接发送给客户，客户无需登录即可填写：</p>
+        <div class="survey-link-box">
+          <input type="text" id="surveyLinkInput" readonly>
+          <button class="btn-primary" onclick="copySurveyLink()" style="white-space:nowrap;">
+            <i class="fa-solid fa-copy"></i> 复制链接
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveySendModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 问卷统计弹窗 -->
+  <div class="modal-overlay" id="surveyStatsModal">
+    <div class="modal-container" style="width:780px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-chart-bar" style="color:var(--primary);"></i> 问卷统计</h3>
+        <button class="close-btn" onclick="closeSurveyStatsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+        <div id="surveyStatsContent">
+          <!-- 由 JS 动态渲染统计内容 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveyStatsModal()">关闭</button>
       </div>
     </div>
   </div>
