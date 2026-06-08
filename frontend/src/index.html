@@ -34,6 +34,10 @@
           <i class="fa-solid fa-users"></i>
           <span>客户管理</span>
         </a>
+        <a href="#" class="nav-item" data-tab="surveys">
+          <i class="fa-solid fa-clipboard-question"></i>
+          <span>满意度调查</span>
+        </a>
         <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
           <i class="fa-solid fa-box-open"></i>
           <span>产品列表</span>
@@ -169,7 +173,111 @@
           </div>
         </div>
       </div>
+      <!-- 满意度调查视图：用于查看、创建、统计已发出的调查问卷 -->
+      <div id="surveys-view" class="view-section">
+        <div class="table-controls">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="surveySearch" placeholder="搜索问卷标题...">
+          </div>
+          <button class="btn-primary" onclick="openSurveyModal()">
+            <i class="fa-solid fa-plus"></i> 创建问卷
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>问卷标题</th>
+                <th>问题数</th>
+                <th>已收回</th>
+                <th>创建时间</th>
+                <th>分享链接</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="surveyTableBody">
+              <!-- 由 JS 动态渲染 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
+  </div>
+
+  <!-- 创建问卷弹窗：管理员可在此设计问卷标题与多道题目 -->
+  <div class="modal-overlay" id="surveyModal">
+    <div class="modal-container survey-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-clipboard-question"></i> 创建满意度调查问卷</h3>
+        <button class="close-btn" onclick="closeSurveyModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>问卷标题</label>
+          <input type="text" id="surveyTitle" placeholder="例如：2026 年度产品满意度调查">
+        </div>
+        <div class="form-group">
+          <label>问卷描述（可选）</label>
+          <input type="text" id="surveyDesc" placeholder="对客户的简短说明">
+        </div>
+
+        <div class="form-group">
+          <label>问题列表</label>
+          <!-- 问题动态容器：用户可添加多道题目 -->
+          <div id="questionList"></div>
+          <button class="btn-secondary" type="button" onclick="addQuestion()" style="margin-top:0.5rem;">
+            <i class="fa-solid fa-plus"></i> 添加问题
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveyModal()">取消</button>
+        <button class="btn-primary" onclick="saveSurvey()">保存并生成链接</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 问卷统计弹窗：展示某份问卷的提交记录与统计图表 -->
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal-container survey-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-chart-column"></i> 问卷统计 - <span id="statsTitle"></span></h3>
+        <button class="close-btn" onclick="closeStatsModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="statsBody">
+        <!-- 由 JS 渲染统计内容 -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeStatsModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分享链接弹窗：保存问卷后展示给管理员的可复制链接 -->
+  <div class="modal-overlay" id="shareModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-share-nodes"></i> 分享问卷链接</h3>
+        <button class="close-btn" onclick="closeShareModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:0.75rem;font-size:0.875rem;color:var(--text-muted);">
+          将此链接发送给客户，客户无需登录即可填写：
+        </p>
+        <div class="share-link-row">
+          <input type="text" id="shareLinkInput" readonly>
+          <button class="btn-primary" onclick="copyShareLink()">
+            <i class="fa-solid fa-copy"></i> 复制
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeShareModal()">关闭</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal for Add/Edit -->

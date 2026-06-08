@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户满意度调查 - PDH Electronic</title>
+  <!-- 字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- 图标 -->
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- 复用主样式 -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="public-body">
+  <!-- 客户填写页面：无需登录 -->
+  <div class="public-survey-wrapper">
+    <div class="public-survey-card" id="surveyCard">
+      <!-- 内容由 JS 渲染 -->
+      <div class="loading">
+        <i class="fa-solid fa-spinner fa-spin"></i> 加载中...
+      </div>
+    </div>
+    <p class="public-footer">© PDH Electronic · 您的反馈对我们非常重要</p>
+  </div>
+
+  <!-- Toast 容器 -->
+  <div id="toast-container"></div>
+
+  <script src="js/survey.js"></script>
+</body>
+
+</html>

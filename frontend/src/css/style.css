@@ -916,3 +916,537 @@ input, select { font-family: inherit; }
 }
 
 .radio-custom { display: none; } /* Hide old custom span */
+
+/* ==========================================================
+ * 满意度调查模块样式
+ * ========================================================== */
+
+/* 调查问卷创建/统计弹窗：放大宽度 */
+.modal-container.survey-modal {
+    width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-container.survey-modal .modal-body {
+    overflow-y: auto;
+}
+
+/* 创建问卷：题目行 */
+.question-item {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.question-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.question-row .q-index {
+    font-weight: 600;
+    color: var(--primary);
+    width: 32px;
+    flex-shrink: 0;
+}
+
+.question-row .q-text {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.question-row .q-type {
+    width: 130px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+}
+
+.question-row .q-remove {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.question-row .q-remove:hover {
+    background: #fee2e2;
+    color: var(--danger);
+}
+
+.q-options {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+/* 单选题选项编辑区（可视化） */
+.q-options-box {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.q-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.q-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.4rem 0.75rem;
+    transition: all 0.2s;
+}
+
+.q-option-row:hover {
+    border-color: var(--primary);
+}
+
+.q-option-bullet {
+    color: var(--primary);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.q-option-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0.35rem 0;
+    font-size: 0.875rem;
+    color: var(--text-main);
+}
+
+.q-option-remove {
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    transition: all 0.2s;
+}
+
+.q-option-remove:hover {
+    background: #fee2e2;
+    color: var(--danger);
+}
+
+.q-add-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--primary);
+    color: var(--primary);
+    font-size: 0.8125rem;
+    background: white;
+    transition: all 0.2s;
+}
+
+.q-add-option:hover {
+    background: #eef2ff;
+}
+
+/* 分享链接行 */
+.share-link-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.share-link-row input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    color: var(--text-main);
+    font-size: 0.875rem;
+}
+
+.link-cell {
+    color: var(--primary);
+    font-size: 0.875rem;
+}
+
+.link-cell:hover {
+    text-decoration: underline;
+}
+
+/* 统计区 */
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stats-summary > div {
+    background: #eef2ff;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+}
+
+.stats-summary span {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.stats-summary strong {
+    font-size: 1.25rem;
+    color: var(--primary);
+}
+
+.stats-question {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+.stats-question:last-child {
+    border-bottom: none;
+}
+
+.stats-question h4 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.stats-meta {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.bar-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.bar-label {
+    width: 100px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.bar-track {
+    flex: 1;
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+    transition: width 0.4s;
+}
+
+.bar-count {
+    width: 32px;
+    text-align: right;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.text-answers {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.text-answers li {
+    background: #f8fafc;
+    border-left: 3px solid var(--primary);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 0.875rem;
+}
+
+.text-answers li.empty {
+    border-left-color: var(--border-color);
+    color: var(--text-muted);
+}
+
+/* ==========================================================
+ * 客户端公共填写页面
+ * ========================================================== */
+.public-body {
+    background: var(--gradient-bg);
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+}
+
+.public-survey-wrapper {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.public-survey-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2rem;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.public-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.public-header .logo-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 1.75rem;
+    margin: 0 auto 1rem;
+}
+
+.public-header h1 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.public-header .desc {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.public-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.public-form input[type="text"],
+.public-form textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.public-form input[type="text"]:focus,
+.public-form textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.public-question .q-no {
+    color: var(--primary);
+    font-weight: 600;
+    margin-right: 0.25rem;
+}
+
+/* 评分星星 */
+.rating-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.star-btn {
+    font-size: 1.5rem;
+    color: #cbd5e1;
+    padding: 0.25rem;
+    transition: transform 0.2s, color 0.2s;
+}
+
+.star-btn:hover {
+    transform: scale(1.15);
+    color: var(--warning);
+}
+
+.star-btn .fa-solid.active {
+    color: var(--warning);
+}
+
+/* 单选 */
+.choice-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.choice-label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem 0.875rem 2.75rem;
+    background: #f8fafc;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 0.9375rem;
+}
+
+/* 自定义单选指示器 */
+.choice-label::before {
+    content: '';
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.25s ease;
+}
+
+.choice-label::after {
+    content: '';
+    position: absolute;
+    left: calc(1rem + 5px);
+    top: 50%;
+    transform: translateY(-50%) scale(0);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    transition: transform 0.2s ease;
+}
+
+.choice-label:hover {
+    background: white;
+    border-color: #a5b4fc;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.choice-label:has(input:checked) {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: 0 4px 8px -2px rgba(79, 70, 229, 0.2);
+}
+
+.choice-label:has(input:checked)::before {
+    border-color: var(--primary);
+}
+
+.choice-label:has(input:checked)::after {
+    transform: translateY(-50%) scale(1);
+}
+
+/* 隐藏原生 radio */
+.choice-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.public-footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* 成功 / 错误页 */
+.public-success,
+.public-error {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.public-success .success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1rem;
+    background: #dcfce7;
+    color: var(--success);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+.public-success h2,
+.public-error h2 {
+    margin-bottom: 0.5rem;
+}
+
+.public-success p,
+.public-error p {
+    color: var(--text-muted);
+}
+
+.public-error i {
+    font-size: 2.5rem;
+    color: var(--warning);
+    margin-bottom: 1rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .modal-container.survey-modal {
+        width: 92%;
+    }
+    .question-row {
+        flex-wrap: wrap;
+    }
+    .question-row .q-text {
+        flex: 1 1 100%;
+        order: 3;
+    }
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+    .public-survey-card {
+        padding: 1.5rem 1rem;
+    }
+}
+
