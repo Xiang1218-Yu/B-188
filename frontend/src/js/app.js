@@ -560,9 +560,17 @@ function loadSurveysFromStorage() {
         const savedResponses = localStorage.getItem('crm_survey_responses');
         
         if (savedSurveys) {
-            surveys = JSON.parse(savedSurveys);
-        } else {
-            // 初始化示例数据
+            const parsed = JSON.parse(savedSurveys);
+            // 数据校验：确保是数组且每个元素有基本属性
+            if (Array.isArray(parsed)) {
+                surveys = parsed.filter(s => s && typeof s === 'object' && s.id && s.name);
+            } else {
+                surveys = [];
+            }
+        }
+        
+        // 如果没有有效数据，初始化示例数据
+        if (!surveys || surveys.length === 0) {
             surveys = [
                 {
                     id: 'SV001',
@@ -580,9 +588,17 @@ function loadSurveysFromStorage() {
         }
         
         if (savedResponses) {
-            surveyResponses = JSON.parse(savedResponses);
-        } else {
-            // 初始化示例回收数据
+            const parsed = JSON.parse(savedResponses);
+            // 数据校验
+            if (Array.isArray(parsed)) {
+                surveyResponses = parsed.filter(r => r && typeof r === 'object' && r.surveyId);
+            } else {
+                surveyResponses = [];
+            }
+        }
+        
+        // 如果没有有效回收数据，初始化示例数据
+        if (!surveyResponses || surveyResponses.length === 0) {
             surveyResponses = [
                 { id: 1, surveyId: 'SV001', score: 5, feedback: '产品质量很好，服务也很专业！', submittedAt: '2026-01-16 09:20:00' },
                 { id: 2, surveyId: 'SV001', score: 4, feedback: '整体满意，希望交货速度能再快一些。', submittedAt: '2026-01-18 14:35:00' },
@@ -624,10 +640,12 @@ function renderSurveyTable() {
     
     tbody.innerHTML = '';
     
-    // 过滤搜索
-    const filtered = surveys.filter(s => 
-        s.name.toLowerCase().includes(surveyState.query.toLowerCase())
-    );
+    // 过滤搜索（添加防御性检查，避免数据异常时报错）
+    const filtered = surveys.filter(s => {
+        const surveyName = s.name || '';
+        const query = surveyState.query || '';
+        return surveyName.toLowerCase().includes(query.toLowerCase());
+    });
     
     document.getElementById('surveyTotalCount').innerText = filtered.length;
     
@@ -721,9 +739,11 @@ function renderSurveyPagination(totalItems) {
 
 // --- 切换问卷分页 ---
 window.changeSurveyPage = function(page) {
-    const filteredCount = surveys.filter(s => 
-        s.name.toLowerCase().includes(surveyState.query.toLowerCase())
-    ).length;
+    const filteredCount = surveys.filter(s => {
+        const surveyName = s.name || '';
+        const query = surveyState.query || '';
+        return surveyName.toLowerCase().includes(query.toLowerCase());
+    }).length;
     const totalPages = Math.ceil(filteredCount / surveyState.itemsPerPage);
     
     if (page < 1 || page > totalPages) return;
@@ -806,8 +826,16 @@ window.saveSurvey = function() {
         }
     });
     
-    // 生成问卷ID
-    const newId = 'SV' + String(surveys.length + 1).padStart(3, '0');
+    // 生成问卷ID（找最大ID+1，避免删除后重复）
+    let maxNum = 0;
+    surveys.forEach(s => {
+        const match = s.id && s.id.match(/SV(\d+)/);
+        if (match) {
+            const num = parseInt(match[1]);
+            if (num > maxNum) maxNum = num;
+        }
+    });
+    const newId = 'SV' + String(maxNum + 1).padStart(3, '0');
     
     // 获取当前时间
     const now = new Date();
