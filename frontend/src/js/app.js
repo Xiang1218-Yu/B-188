@@ -60,6 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCustomerTable();
     });
 
+    // 问卷搜索监听：实时过滤问卷标题
+    const surveySearchInput = document.getElementById('surveySearch');
+    if (surveySearchInput) {
+        surveySearchInput.addEventListener('input', (e) => {
+            surveyState.query = e.target.value;
+            renderSurveyTable();
+        });
+    }
+
     // Profile Click Feedback
     document.querySelector('.user-info-group').addEventListener('click', () => {
         showToast('用户中心正在开发中...', 'info');
@@ -128,9 +137,15 @@ function initNavigation() {
             // Update Title
             const titleMap = {
                 'dashboard': '数据总览',
-                'customers': '客户管理'
+                'customers': '客户管理',
+                'surveys': '满意度调查'
             };
             pageTitle.innerText = titleMap[target];
+
+            // 切换到满意度调查时刷新表格
+            if (target === 'surveys') {
+                renderSurveyTable();
+            }
         });
     });
 }
@@ -504,3 +519,401 @@ window.showToast = function(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 };
+
+
+/* ==========================================================
+ * 满意度调查问卷模块
+ * 功能说明：
+ *   1. 管理员可在“满意度调查”页面创建问卷（含若干题目）
+ *   2. 保存后生成可分享的公共链接（survey.html?id=xxx）
+ *   3. 客户无需登录，打开链接即可填写并提交
+ *   4. 提交结果通过 localStorage 持久化，模拟“后台收集”
+ *   5. 管理员可在列表中查看每份问卷的统计结果
+ *   注：因当前为纯前端项目，使用 localStorage 作为持久化存储；
+ *       所有问卷与回收数据在浏览器端共享同一个域。
+ * ========================================================== */
+
+// LocalStorage 键名
+const SURVEY_STORE_KEY = 'crm_surveys';
+const RESPONSE_STORE_KEY = 'crm_survey_responses';
+
+// 问卷模块状态
+let surveys = [];               // 问卷列表
+let responses = [];             // 提交记录列表
+let surveyState = { query: '' };// 搜索关键字
+
+/**
+ * 从 localStorage 中加载问卷与回执数据
+ */
+function loadSurveyData() {
+    try {
+        surveys = JSON.parse(localStorage.getItem(SURVEY_STORE_KEY) || '[]');
+        responses = JSON.parse(localStorage.getItem(RESPONSE_STORE_KEY) || '[]');
+    } catch (e) {
+        surveys = [];
+        responses = [];
+    }
+}
+
+/**
+ * 将问卷数据持久化到 localStorage
+ */
+function persistSurveys() {
+    localStorage.setItem(SURVEY_STORE_KEY, JSON.stringify(surveys));
+}
+
+/**
+ * 渲染问卷列表表格
+ */
+function renderSurveyTable() {
+    loadSurveyData();
+    const tbody = document.getElementById('surveyTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    // 根据搜索关键字过滤
+    const list = surveys.filter(s =>
+        !surveyState.query || (s.title || '').includes(surveyState.query)
+    );
+
+    if (list.length === 0) {
+        tbody.innerHTML = `
+            <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">
+                暂无问卷，点击右上角“创建问卷”开始
+            </td></tr>`;
+        return;
+    }
+
+    list.forEach(s => {
+        // 统计该问卷的回收数量
+        const count = responses.filter(r => r.surveyId === s.id).length;
+        const link = buildSurveyLink(s.id);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>#${s.id}</td>
+            <td><strong>${escapeHtml(s.title)}</strong></td>
+            <td>${(s.questions || []).length}</td>
+            <td><span class="status-badge ${count > 0 ? 'active' : 'inactive'}">${count}</span></td>
+            <td>${formatTime(s.createdAt)}</td>
+            <td>
+                <a href="${link}" target="_blank" class="link-cell" title="${link}">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> 打开
+                </a>
+            </td>
+            <td class="action-btns">
+                <button class="edit" title="复制链接" onclick="showShareLink('${s.id}')">
+                    <i class="fa-solid fa-share-nodes"></i>
+                </button>
+                <button class="edit" title="查看统计" onclick="openStatsModal('${s.id}')">
+                    <i class="fa-solid fa-chart-column"></i>
+                </button>
+                <button class="delete" title="删除" onclick="deleteSurvey('${s.id}')">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+/**
+ * 构造问卷分享链接（基于当前域名 + survey.html）
+ * @param {string} id 问卷 id
+ */
+function buildSurveyLink(id) {
+    const base = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+    return `${base}survey.html?id=${encodeURIComponent(id)}`;
+}
+
+/**
+ * 打开问卷创建弹窗
+ */
+window.openSurveyModal = function () {
+    document.getElementById('surveyTitle').value = '';
+    document.getElementById('surveyDesc').value = '';
+    document.getElementById('questionList').innerHTML = '';
+    // 默认插入两道常见题
+    addQuestion('您对我们产品的整体满意度？', 'rating');
+    addQuestion('请留下您的建议或意见', 'text');
+    document.getElementById('surveyModal').classList.add('active');
+};
+
+window.closeSurveyModal = function () {
+    document.getElementById('surveyModal').classList.remove('active');
+};
+
+/**
+ * 在问卷创建弹窗中追加一道题目
+ * @param {string} text  题目内容（可选）
+ * @param {string} type  题目类型 rating | choice | text
+ */
+window.addQuestion = function (text = '', type = 'rating') {
+    const list = document.getElementById('questionList');
+    const idx = list.children.length;
+    const item = document.createElement('div');
+    item.className = 'question-item';
+    item.innerHTML = `
+        <div class="question-row">
+            <span class="q-index">Q${idx + 1}</span>
+            <input type="text" class="q-text" placeholder="请输入问题" value="${escapeHtml(text)}">
+            <select class="q-type">
+                <option value="rating" ${type === 'rating' ? 'selected' : ''}>评分(1-5)</option>
+                <option value="choice" ${type === 'choice' ? 'selected' : ''}>单选</option>
+                <option value="text" ${type === 'text' ? 'selected' : ''}>文本</option>
+            </select>
+            <button type="button" class="q-remove" title="删除题目">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <input type="text" class="q-options" placeholder="单选项，用 | 分隔，如：非常满意|满意|一般|不满意"
+            style="display:${type === 'choice' ? 'block' : 'none'};margin-top:0.5rem;">
+    `;
+    list.appendChild(item);
+
+    // 删除题目
+    item.querySelector('.q-remove').addEventListener('click', () => {
+        item.remove();
+        // 重新编号
+        Array.from(list.children).forEach((node, i) => {
+            node.querySelector('.q-index').innerText = `Q${i + 1}`;
+        });
+    });
+
+    // 切换类型时显示/隐藏选项输入
+    item.querySelector('.q-type').addEventListener('change', (e) => {
+        const optionsInput = item.querySelector('.q-options');
+        optionsInput.style.display = e.target.value === 'choice' ? 'block' : 'none';
+    });
+};
+
+/**
+ * 保存问卷：收集表单内容并生成分享链接
+ */
+window.saveSurvey = function () {
+    const title = document.getElementById('surveyTitle').value.trim();
+    const desc = document.getElementById('surveyDesc').value.trim();
+    if (!title) {
+        showToast('请填写问卷标题', 'error');
+        return;
+    }
+
+    // 收集所有问题
+    const items = document.querySelectorAll('#questionList .question-item');
+    const questions = [];
+    for (let i = 0; i < items.length; i++) {
+        const qText = items[i].querySelector('.q-text').value.trim();
+        const qType = items[i].querySelector('.q-type').value;
+        const rawOptions = items[i].querySelector('.q-options').value.trim();
+        if (!qText) {
+            showToast(`第 ${i + 1} 题题目不能为空`, 'error');
+            return;
+        }
+        const q = { id: 'q_' + (i + 1), text: qText, type: qType };
+        if (qType === 'choice') {
+            q.options = rawOptions ? rawOptions.split('|').map(s => s.trim()).filter(Boolean) : [];
+            if (q.options.length < 2) {
+                showToast(`第 ${i + 1} 题至少配置两个选项`, 'error');
+                return;
+            }
+        }
+        questions.push(q);
+    }
+
+    if (questions.length === 0) {
+        showToast('请至少添加一道题目', 'error');
+        return;
+    }
+
+    // 生成简短的随机 id
+    const id = 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    surveys.unshift({
+        id,
+        title,
+        description: desc,
+        questions,
+        createdAt: Date.now()
+    });
+    persistSurveys();
+
+    closeSurveyModal();
+    renderSurveyTable();
+    showShareLink(id);
+    showToast('问卷已创建', 'success');
+};
+
+/**
+ * 删除问卷以及该问卷对应的提交记录
+ */
+window.deleteSurvey = function (id) {
+    pendingDeleteId = id;
+    document.getElementById('confirmModal').classList.add('active');
+    document.getElementById('confirmMessage').innerText = '确定要删除该问卷及其全部回收数据吗？';
+
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const newBtn = actionBtn.cloneNode(true);
+    actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+
+    newBtn.addEventListener('click', () => {
+        surveys = surveys.filter(s => s.id !== id);
+        responses = responses.filter(r => r.surveyId !== id);
+        localStorage.setItem(SURVEY_STORE_KEY, JSON.stringify(surveys));
+        localStorage.setItem(RESPONSE_STORE_KEY, JSON.stringify(responses));
+        renderSurveyTable();
+        showToast('问卷已删除', 'warning');
+        closeConfirmModal();
+    });
+};
+
+/**
+ * 展示分享链接弹窗
+ */
+window.showShareLink = function (id) {
+    const link = buildSurveyLink(id);
+    document.getElementById('shareLinkInput').value = link;
+    document.getElementById('shareModal').classList.add('active');
+};
+
+window.closeShareModal = function () {
+    document.getElementById('shareModal').classList.remove('active');
+};
+
+/**
+ * 复制分享链接到剪贴板
+ */
+window.copyShareLink = function () {
+    const input = document.getElementById('shareLinkInput');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    try {
+        // 优先使用现代 API
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(input.value);
+        } else {
+            document.execCommand('copy');
+        }
+        showToast('链接已复制', 'success');
+    } catch (e) {
+        showToast('复制失败，请手动复制', 'error');
+    }
+};
+
+/**
+ * 打开问卷统计弹窗，展示提交概况和每题统计
+ */
+window.openStatsModal = function (id) {
+    loadSurveyData();
+    const survey = surveys.find(s => s.id === id);
+    if (!survey) {
+        showToast('问卷不存在', 'error');
+        return;
+    }
+    const list = responses.filter(r => r.surveyId === id);
+    document.getElementById('statsTitle').innerText = survey.title;
+
+    const body = document.getElementById('statsBody');
+
+    if (list.length === 0) {
+        body.innerHTML = `
+            <div style="text-align:center;padding:2rem;color:var(--text-muted);">
+                <i class="fa-solid fa-inbox" style="font-size:2rem;"></i>
+                <p style="margin-top:0.75rem;">暂未收到任何回执</p>
+            </div>`;
+        document.getElementById('statsModal').classList.add('active');
+        return;
+    }
+
+    // 概览卡片
+    let html = `
+        <div class="stats-summary">
+            <div><span>已回收</span><strong>${list.length}</strong></div>
+            <div><span>题目数</span><strong>${survey.questions.length}</strong></div>
+            <div><span>最近提交</span><strong>${formatTime(list[list.length - 1].submittedAt)}</strong></div>
+        </div>
+    `;
+
+    // 每题统计
+    survey.questions.forEach(q => {
+        html += `<div class="stats-question"><h4>${escapeHtml(q.text)}</h4>`;
+        const answers = list.map(r => r.answers[q.id]).filter(v => v !== undefined && v !== '');
+
+        if (q.type === 'rating') {
+            // 评分：求平均与各档分布
+            const nums = answers.map(Number).filter(n => !isNaN(n));
+            const avg = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '-';
+            const dist = [1, 2, 3, 4, 5].map(score => nums.filter(n => n === score).length);
+            const max = Math.max(...dist, 1);
+            html += `<p class="stats-meta">平均分：<strong>${avg}</strong> · 有效回答 ${nums.length}</p>`;
+            html += '<div class="bar-chart">';
+            dist.forEach((c, i) => {
+                const w = Math.round((c / max) * 100);
+                html += `
+                    <div class="bar-row">
+                        <span class="bar-label">${i + 1} 分</span>
+                        <div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>
+                        <span class="bar-count">${c}</span>
+                    </div>`;
+            });
+            html += '</div>';
+        } else if (q.type === 'choice') {
+            // 单选：统计选项次数
+            const counts = {};
+            (q.options || []).forEach(o => counts[o] = 0);
+            answers.forEach(a => {
+                if (counts[a] !== undefined) counts[a]++;
+                else counts[a] = (counts[a] || 0) + 1;
+            });
+            const max = Math.max(...Object.values(counts), 1);
+            html += '<div class="bar-chart">';
+            Object.keys(counts).forEach(opt => {
+                const w = Math.round((counts[opt] / max) * 100);
+                html += `
+                    <div class="bar-row">
+                        <span class="bar-label">${escapeHtml(opt)}</span>
+                        <div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div>
+                        <span class="bar-count">${counts[opt]}</span>
+                    </div>`;
+            });
+            html += '</div>';
+        } else {
+            // 文本：列出回答
+            html += '<ul class="text-answers">';
+            answers.forEach(a => {
+                html += `<li>${escapeHtml(a)}</li>`;
+            });
+            if (answers.length === 0) html += '<li class="empty">暂无文本回答</li>';
+            html += '</ul>';
+        }
+        html += '</div>';
+    });
+
+    body.innerHTML = html;
+    document.getElementById('statsModal').classList.add('active');
+};
+
+window.closeStatsModal = function () {
+    document.getElementById('statsModal').classList.remove('active');
+};
+
+/**
+ * 格式化时间戳
+ */
+function formatTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    const pad = n => (n < 10 ? '0' + n : '' + n);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/**
+ * 转义 HTML，防止 XSS
+ */
+function escapeHtml(str) {
+    if (str === undefined || str === null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
