@@ -375,6 +375,40 @@
     </div>
   </div>
 
+  <!-- Question Type Selector Modal -->
+  <div class="modal-overlay" id="questionTypeModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-plus-circle"></i> 选择问题类型</h3>
+        <button class="close-btn" onclick="closeQuestionTypeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="question-type-selector">
+          <div class="question-type-option" onclick="selectQuestionType('rating')">
+            <i class="fa-solid fa-star" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #fbbf24;"></i>
+            <div><strong>评分题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">5星满意度评分</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('single')">
+            <i class="fa-solid fa-circle-dot" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #3b82f6;"></i>
+            <div><strong>单选题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">单选一个选项</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('multiple')">
+            <i class="fa-solid fa-square-check" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #10b981;"></i>
+            <div><strong>多选题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">可多选多个选项</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('text')">
+            <i class="fa-solid fa-align-left" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #8b5cf6;"></i>
+            <div><strong>文本题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">开放式文字回答</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container"></div>
 

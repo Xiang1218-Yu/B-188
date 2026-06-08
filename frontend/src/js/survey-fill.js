@@ -173,8 +173,12 @@ function initFormEvents(survey) {
         const items = list.querySelectorAll('.option-item');
 
         items.forEach(item => {
-            item.addEventListener('click', () => {
-                items.forEach(i => i.classList.remove('selected'));
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                items.forEach(i => {
+                    i.classList.remove('selected');
+                    i.querySelector('input').checked = false;
+                });
                 item.classList.add('selected');
                 answers[questionId] = item.dataset.value;
                 item.querySelector('input').checked = true;
@@ -188,9 +192,16 @@ function initFormEvents(survey) {
         const items = list.querySelectorAll('.option-item');
 
         items.forEach(item => {
-            item.addEventListener('click', () => {
-                item.classList.toggle('selected');
-                item.querySelector('input').checked = item.classList.contains('selected');
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isSelected = item.classList.contains('selected');
+                if (isSelected) {
+                    item.classList.remove('selected');
+                    item.querySelector('input').checked = false;
+                } else {
+                    item.classList.add('selected');
+                    item.querySelector('input').checked = true;
+                }
 
                 const selected = [];
                 items.forEach(i => {

@@ -551,6 +551,8 @@ input, select { font-family: inherit; }
 
 .modal-body {
     padding: 1.5rem;
+    overflow-y: auto;
+    max-height: 60vh;
 }
 
 .form-group { margin-bottom: 1.25rem; }

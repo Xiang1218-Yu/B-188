@@ -645,14 +645,15 @@ window.closeSurveyEditor = function() {
 };
 
 window.addQuestionToEditor = function() {
-    const typeNames = { rating: '评分题', single: '单选题', multiple: '多选题', text: '文本题' };
-    const type = prompt('请选择问题类型:\n1 - 评分题\n2 - 单选题\n3 - 多选题\n4 - 文本题', '1');
-    
-    let qType = 'rating';
-    if (type === '2') qType = 'single';
-    else if (type === '3') qType = 'multiple';
-    else if (type === '4') qType = 'text';
+    document.getElementById('questionTypeModal').classList.add('active');
+};
 
+window.closeQuestionTypeModal = function() {
+    document.getElementById('questionTypeModal').classList.remove('active');
+};
+
+window.selectQuestionType = function(qType) {
+    closeQuestionTypeModal();
     editingQuestions.push({
         id: 'q' + (editingQuestions.length + 1),
         type: qType,
@@ -693,7 +694,15 @@ window.renderQuestionEditor = function() {
         return `
             <div class="question-editor-item">
                 <div class="question-editor-header">
-                    <span class="question-editor-title">问题 ${index + 1} · ${typeNames[q.type]}</span>
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <span class="question-editor-title">问题 ${index + 1}</span>
+                        <select onchange="changeQuestionType(${index}, this.value)" style="padding:0.25rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-md); font-size:0.8rem;">
+                            <option value="rating" ${q.type === 'rating' ? 'selected' : ''}>⭐ 评分题</option>
+                            <option value="single" ${q.type === 'single' ? 'selected' : ''}>◉ 单选题</option>
+                            <option value="multiple" ${q.type === 'multiple' ? 'selected' : ''}>☑ 多选题</option>
+                            <option value="text" ${q.type === 'text' ? 'selected' : ''}>📝 文本题</option>
+                        </select>
+                    </div>
                     <div class="question-editor-actions">
                         <button type="button" title="上移" onclick="moveQuestion(${index}, -1)" ${index === 0 ? 'disabled' : ''}>
                             <i class="fa-solid fa-chevron-up"></i>
@@ -718,6 +727,15 @@ window.renderQuestionEditor = function() {
             </div>
         `;
     }).join('');
+};
+
+window.changeQuestionType = function(qIndex, newType) {
+    const q = editingQuestions[qIndex];
+    q.type = newType;
+    if ((newType === 'single' || newType === 'multiple') && (!q.options || q.options.length === 0)) {
+        q.options = ['选项1', '选项2'];
+    }
+    renderQuestionEditor();
 };
 
 window.updateQuestionField = function(qIndex, field, value) {
