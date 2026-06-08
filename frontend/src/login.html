@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 昆山飘得华电子材料有限公司</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo-icon large">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <h2>欢迎回来</h2>
+                <p>请登录以访问客户管理系统</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>账号</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-user"></i>
+                        <input type="text" id="username" placeholder="请输入管理员账号" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-solid fa-lock"></i>
+                        <input type="password" id="password" placeholder="请输入密码" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-block">
+                    登录系统 <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <span>测试账号: admin / admin123</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

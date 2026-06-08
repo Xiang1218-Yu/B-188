@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>昆山飘得华电子材料有限公司 - 客户管理系统</title>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Icons (BootCDN) -->
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div class="brand-text">
+          <h2>PDH Electronic</h2>
+          <span>CRM System</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <a href="#" class="nav-item active" data-tab="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>数据看板</span>
+        </a>
+        <a href="#" class="nav-item" data-tab="customers">
+          <i class="fa-solid fa-users"></i>
+          <span>客户管理</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
+          <i class="fa-solid fa-box-open"></i>
+          <span>产品列表</span>
+        </a>
+        <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
+          <i class="fa-solid fa-gear"></i>
+          <span>系统设置</span>
+        </a>
+      </nav>
+
+      <div class="user-profile">
+        <div class="user-info-group">
+          <div class="avatar"><i class="fa-solid fa-user-astronaut"></i></div>
+          <div class="user-info">
+            <h4>Admin User</h4>
+            <span>管理员</span>
+          </div>
+        </div>
+        <button class="logout-btn" id="logoutBtn" title="退出登录">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <button class="icon-btn mobile-menu-btn" id="mobileMenuBtn">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="page-title">
+          <h1 id="pageTitle">数据总览</h1>
+          <span class="date-display" id="currentDate">2026-01-23</span>
+        </div>
+        <div class="actions">
+          <button class="icon-btn" onclick="showToast('没有新通知', 'info')">
+            <i class="fa-solid fa-bell"></i>
+          </button>
+          <button class="icon-btn" onclick="showToast('搜索功能即将上线', 'info')">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Views -->
+      <div id="dashboard-view" class="view-section active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="icon-box purple"><i class="fa-solid fa-users"></i></div>
+            <div class="stat-info">
+              <h3>总客户数</h3>
+              <p class="counter" data-target="128">0</p>
+              <span class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +12.5%</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box blue"><i class="fa-solid fa-cart-shopping"></i></div>
+            <div class="stat-info">
+              <h3>本月订单</h3>
+              <p class="counter" data-target="452">0</p>
+              <span class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +8.2%</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box green"><i class="fa-solid fa-wallet"></i></div>
+            <div class="stat-info">
+              <h3>总营收 (万)</h3>
+              <p class="counter" data-target="325">0</p>
+              <span class="trend down"><i class="fa-solid fa-arrow-trend-down"></i> -2.1%</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="icon-box orange"><i class="fa-solid fa-box"></i></div>
+            <div class="stat-info">
+              <h3>在售产品</h3>
+              <p class="counter" data-target="64">0</p>
+              <span class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +4</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-container">
+          <div class="chart-card wide">
+            <h3><i class="fa-solid fa-chart-line"></i> 年度销售趋势</h3>
+            <canvas id="salesChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3><i class="fa-solid fa-chart-pie"></i> 客户分布</h3>
+            <canvas id="customerChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div id="customers-view" class="view-section">
+        <div class="table-controls">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="customerSearch" placeholder="搜索客户名称/联系人...">
+          </div>
+          <button class="btn-primary" onclick="openModal('add')">
+            <i class="fa-solid fa-plus"></i> 新增客户
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>企业名称</th>
+                <th>联系人</th>
+                <th>联系电话</th>
+                <th>所属区域</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="customerTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span>显示 1-10 条，共 <span id="totalCount">0</span> 条</span>
+          <div class="page-btns">
+            <button class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal for Add/Edit -->
+  <div class="modal-overlay" id="customerModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="modalTitle">新增客户</h3>
+        <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="customerForm">
+          <input type="hidden" id="customerId">
+          <div class="form-group">
+            <label>企业名称</label>
+            <input type="text" id="companyName" required placeholder="请输入完整企业名称">
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>联系人</label>
+              <input type="text" id="contact" required placeholder="姓名">
+            </div>
+            <div class="form-group">
+              <label>联系电话</label>
+              <input type="tel" id="phone" required placeholder="手机或座机">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>所属区域</label>
+            <div class="custom-select-wrapper">
+              <input type="hidden" id="region" value="华东区">
+              <div class="custom-select" id="regionTrigger">
+                <span class="trigger-text">华东区</span>
+                <i class="fa-solid fa-chevron-down arrow"></i>
+              </div>
+              <div class="custom-options">
+                <div class="custom-option selected" data-value="华东区">华东区</div>
+                <div class="custom-option" data-value="华南区">华南区</div>
+                <div class="custom-option" data-value="华北区">华北区</div>
+                <div class="custom-option" data-value="海外">海外</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>合作状态</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" name="status" value="Active" checked>
+                <span class="radio-custom status-active"></span> 合作中
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="status" value="Inactive">
+                <span class="radio-custom status-inactive"></span> 已暂停
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn-primary" onclick="saveCustomer()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-circle-exclamation text-warning"></i> 确认操作</h3>
+        <button class="close-btn" onclick="closeConfirmModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage">确定要执行此操作吗？</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeConfirmModal()">取消</button>
+        <button class="btn-primary btn-danger" id="confirmActionBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts (BootCDN) -->
+  <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
