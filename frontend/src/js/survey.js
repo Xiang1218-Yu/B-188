@@ -34,6 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // 问卷被管理员关闭时禁止填写
+    if (currentSurvey.status === 'closed') {
+        card.innerHTML = renderError('问卷已关闭', '该问卷暂未开放或已停止收集回执');
+        return;
+    }
+
     renderSurvey(currentSurvey);
 });
 

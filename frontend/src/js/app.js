@@ -588,10 +588,17 @@ function renderSurveyTable() {
         // 统计该问卷的回收数量
         const count = responses.filter(r => r.surveyId === s.id).length;
         const link = buildSurveyLink(s.id);
+        // 兼容老数据：未设置 status 视为开启
+        const isClosed = s.status === 'closed';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>#${s.id}</td>
-            <td><strong>${escapeHtml(s.title)}</strong></td>
+            <td>
+                <strong>${escapeHtml(s.title)}</strong>
+                <span class="status-badge ${isClosed ? 'inactive' : 'active'}" style="margin-left:0.5rem;">
+                    ${isClosed ? '已关闭' : '进行中'}
+                </span>
+            </td>
             <td>${(s.questions || []).length}</td>
             <td><span class="status-badge ${count > 0 ? 'active' : 'inactive'}">${count}</span></td>
             <td>${formatTime(s.createdAt)}</td>
@@ -601,11 +608,19 @@ function renderSurveyTable() {
                 </a>
             </td>
             <td class="action-btns">
+                <button class="edit" title="编辑问卷" onclick="openSurveyModal('${s.id}')">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
                 <button class="edit" title="复制链接" onclick="showShareLink('${s.id}')">
                     <i class="fa-solid fa-share-nodes"></i>
                 </button>
                 <button class="edit" title="查看统计" onclick="openStatsModal('${s.id}')">
                     <i class="fa-solid fa-chart-column"></i>
+                </button>
+                <button class="${isClosed ? 'edit' : 'delete'}"
+                    title="${isClosed ? '重新开启' : '关闭问卷'}"
+                    onclick="toggleSurveyStatus('${s.id}')">
+                    <i class="fa-solid ${isClosed ? 'fa-lock-open' : 'fa-lock'}"></i>
                 </button>
                 <button class="delete" title="删除" onclick="deleteSurvey('${s.id}')">
                     <i class="fa-solid fa-trash-can"></i>
@@ -617,6 +632,20 @@ function renderSurveyTable() {
 }
 
 /**
+ * 切换问卷的开启 / 关闭状态
+ * 关闭后客户访问填写链接时不允许再提交
+ */
+window.toggleSurveyStatus = function (id) {
+    loadSurveyData();
+    const s = surveys.find(it => it.id === id);
+    if (!s) return;
+    s.status = s.status === 'closed' ? 'open' : 'closed';
+    persistSurveys();
+    renderSurveyTable();
+    showToast(s.status === 'closed' ? '问卷已关闭，停止收集回执' : '问卷已重新开启', 'success');
+};
+
+/**
  * 构造问卷分享链接（基于当前域名 + survey.html）
  * @param {string} id 问卷 id
  */
@@ -625,29 +654,61 @@ function buildSurveyLink(id) {
     return `${base}survey.html?id=${encodeURIComponent(id)}`;
 }
 
+// 当前正在编辑的问卷 id；为空表示新建
+let editingSurveyId = null;
+
 /**
- * 打开问卷创建弹窗
+ * 打开问卷创建/编辑弹窗
+ * @param {string} [id] 传入 id 则进入编辑模式，否则为新建
  */
-window.openSurveyModal = function () {
-    document.getElementById('surveyTitle').value = '';
-    document.getElementById('surveyDesc').value = '';
-    document.getElementById('questionList').innerHTML = '';
-    // 默认插入两道常见题
-    addQuestion('您对我们产品的整体满意度？', 'rating');
-    addQuestion('请留下您的建议或意见', 'text');
+window.openSurveyModal = function (id) {
+    loadSurveyData();
+    editingSurveyId = id || null;
+    const list = document.getElementById('questionList');
+    list.innerHTML = '';
+
+    // 修改弹窗标题与按钮文案
+    const header = document.querySelector('#surveyModal .modal-header h3');
+    const saveBtn = document.querySelector('#surveyModal .modal-footer .btn-primary');
+
+    if (editingSurveyId) {
+        const s = surveys.find(it => it.id === editingSurveyId);
+        if (!s) {
+            showToast('问卷不存在', 'error');
+            return;
+        }
+        if (header) header.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 编辑满意度调查问卷';
+        if (saveBtn) saveBtn.innerText = '保存修改';
+
+        document.getElementById('surveyTitle').value = s.title || '';
+        document.getElementById('surveyDesc').value = s.description || '';
+        // 渲染所有已有题目
+        (s.questions || []).forEach(q => addQuestion(q.text, q.type, q.options || []));
+    } else {
+        if (header) header.innerHTML = '<i class="fa-solid fa-clipboard-question"></i> 创建满意度调查问卷';
+        if (saveBtn) saveBtn.innerText = '保存并生成链接';
+
+        document.getElementById('surveyTitle').value = '';
+        document.getElementById('surveyDesc').value = '';
+        // 默认插入两道常见题
+        addQuestion('您对我们产品的整体满意度？', 'rating');
+        addQuestion('请留下您的建议或意见', 'text');
+    }
     document.getElementById('surveyModal').classList.add('active');
 };
 
 window.closeSurveyModal = function () {
     document.getElementById('surveyModal').classList.remove('active');
+    editingSurveyId = null;
 };
 
 /**
  * 在问卷创建弹窗中追加一道题目
- * @param {string} text  题目内容（可选）
- * @param {string} type  题目类型 rating | choice | text
+ * @param {string} text     题目内容（可选）
+ * @param {string} type     题目类型 rating | choice | text
+ * @param {string[]} options 单选题的选项数组（可选）
  */
-window.addQuestion = function (text = '', type = 'rating') {
+window.addQuestion = function (text = '', type = 'rating', options = []) {
     const list = document.getElementById('questionList');
     const idx = list.children.length;
     const item = document.createElement('div');
@@ -665,29 +726,69 @@ window.addQuestion = function (text = '', type = 'rating') {
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        <input type="text" class="q-options" placeholder="单选项，用 | 分隔，如：非常满意|满意|一般|不满意"
-            style="display:${type === 'choice' ? 'block' : 'none'};margin-top:0.5rem;">
+        <!-- 选项可视化容器：每个选项一个独立输入框 -->
+        <div class="q-options-box" style="display:${type === 'choice' ? 'block' : 'none'};">
+            <div class="q-options-list"></div>
+            <button type="button" class="q-add-option">
+                <i class="fa-solid fa-plus"></i> 添加选项
+            </button>
+        </div>
     `;
     list.appendChild(item);
+
+    const optionsBox = item.querySelector('.q-options-box');
+    const optionsList = item.querySelector('.q-options-list');
+    const addOptionBtn = item.querySelector('.q-add-option');
+
+    // 单选项渲染：每行一个可视化 chip + 删除按钮
+    function appendOption(value = '') {
+        const row = document.createElement('div');
+        row.className = 'q-option-row';
+        row.innerHTML = `
+            <span class="q-option-bullet"><i class="fa-regular fa-circle-dot"></i></span>
+            <input type="text" class="q-option-input" placeholder="请输入选项内容" value="${escapeHtml(value)}">
+            <button type="button" class="q-option-remove" title="删除选项">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
+        row.querySelector('.q-option-remove').addEventListener('click', () => row.remove());
+        optionsList.appendChild(row);
+    }
+
+    // 初始化已有选项；若类型为 choice 但无数据，给出默认两条
+    if (type === 'choice') {
+        if (options && options.length) {
+            options.forEach(o => appendOption(o));
+        } else {
+            appendOption('非常满意');
+            appendOption('满意');
+        }
+    }
+
+    // 添加选项按钮
+    addOptionBtn.addEventListener('click', () => appendOption(''));
 
     // 删除题目
     item.querySelector('.q-remove').addEventListener('click', () => {
         item.remove();
-        // 重新编号
         Array.from(list.children).forEach((node, i) => {
             node.querySelector('.q-index').innerText = `Q${i + 1}`;
         });
     });
 
-    // 切换类型时显示/隐藏选项输入
+    // 切换类型时显示/隐藏选项区域；切到 choice 且无选项时初始化
     item.querySelector('.q-type').addEventListener('change', (e) => {
-        const optionsInput = item.querySelector('.q-options');
-        optionsInput.style.display = e.target.value === 'choice' ? 'block' : 'none';
+        const v = e.target.value;
+        optionsBox.style.display = v === 'choice' ? 'block' : 'none';
+        if (v === 'choice' && optionsList.children.length === 0) {
+            appendOption('非常满意');
+            appendOption('满意');
+        }
     });
 };
 
 /**
- * 保存问卷：收集表单内容并生成分享链接
+ * 保存问卷：根据是否处于编辑模式选择新建 / 更新
  */
 window.saveSurvey = function () {
     const title = document.getElementById('surveyTitle').value.trim();
@@ -703,14 +804,16 @@ window.saveSurvey = function () {
     for (let i = 0; i < items.length; i++) {
         const qText = items[i].querySelector('.q-text').value.trim();
         const qType = items[i].querySelector('.q-type').value;
-        const rawOptions = items[i].querySelector('.q-options').value.trim();
         if (!qText) {
             showToast(`第 ${i + 1} 题题目不能为空`, 'error');
             return;
         }
         const q = { id: 'q_' + (i + 1), text: qText, type: qType };
         if (qType === 'choice') {
-            q.options = rawOptions ? rawOptions.split('|').map(s => s.trim()).filter(Boolean) : [];
+            const optionInputs = items[i].querySelectorAll('.q-option-input');
+            q.options = Array.from(optionInputs)
+                .map(inp => inp.value.trim())
+                .filter(Boolean);
             if (q.options.length < 2) {
                 showToast(`第 ${i + 1} 题至少配置两个选项`, 'error');
                 return;
@@ -724,13 +827,35 @@ window.saveSurvey = function () {
         return;
     }
 
-    // 生成简短的随机 id
+    if (editingSurveyId) {
+        // 编辑模式：更新原问卷，保留 id 与原创建时间
+        const idx = surveys.findIndex(s => s.id === editingSurveyId);
+        if (idx === -1) {
+            showToast('问卷不存在或已被删除', 'error');
+            return;
+        }
+        surveys[idx] = {
+            ...surveys[idx],
+            title,
+            description: desc,
+            questions,
+            updatedAt: Date.now()
+        };
+        persistSurveys();
+        closeSurveyModal();
+        renderSurveyTable();
+        showToast('问卷已更新', 'success');
+        return;
+    }
+
+    // 新建模式
     const id = 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     surveys.unshift({
         id,
         title,
         description: desc,
         questions,
+        status: 'open',
         createdAt: Date.now()
     });
     persistSurveys();
