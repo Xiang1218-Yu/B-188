@@ -916,3 +916,614 @@ input, select { font-family: inherit; }
 }
 
 .radio-custom { display: none; } /* Hide old custom span */
+
+
+/* =====================================================
+   满意度调查模块样式
+   ===================================================== */
+
+/* --- 创建问卷弹窗中的题目项 --- */
+.survey-question-item {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: border-color 0.2s;
+}
+
+.survey-question-item:hover {
+    border-color: #cbd5e1;
+}
+
+.survey-question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.survey-question-number {
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.875rem;
+}
+
+.survey-question-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.survey-question-actions button {
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+
+.survey-question-actions button:hover:not(:disabled) {
+    background: #e2e8f0;
+    color: var(--primary);
+}
+
+.survey-question-actions button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.survey-question-actions button:last-child:hover:not(:disabled) {
+    background: #fee2e2;
+    color: var(--danger);
+}
+
+/* 题目编辑区内的 textarea */
+.survey-question-item textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.survey-question-item textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* 题目编辑区内的 select */
+.survey-question-item select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.survey-question-item select:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* --- 发送问卷链接框 --- */
+.survey-link-box {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.survey-link-box input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: #f8fafc;
+    font-size: 0.875rem;
+    color: var(--text-main);
+}
+
+/* --- 问卷统计样式 --- */
+.survey-stats-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.survey-stats-header h2 {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+}
+
+.survey-stats-summary {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.survey-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f8fafc;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    min-width: 80px;
+}
+
+.survey-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.survey-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.survey-stats-question {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.survey-stats-question:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.survey-stats-question h4 {
+    font-size: 0.9375rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+}
+
+/* 选项统计柱状图 */
+.survey-option-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.survey-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.survey-option-label {
+    width: 100px;
+    font-size: 0.8125rem;
+    color: var(--text-main);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.survey-option-bar-bg {
+    flex: 1;
+    height: 24px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.survey-option-bar {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.6s ease;
+    min-width: 2px;
+}
+
+.survey-option-count {
+    width: 80px;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* 文本题回答列表 */
+.survey-text-answers {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.survey-text-answer-item {
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    color: var(--text-main);
+    border-left: 3px solid var(--primary);
+}
+
+.survey-text-answer-item i {
+    color: var(--primary);
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    opacity: 0.5;
+}
+
+.no-data {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+
+/* =====================================================
+   客户填写问卷页面样式
+   ===================================================== */
+
+.survey-page-body {
+    background: var(--gradient-bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem 1rem;
+    height: auto;
+    overflow-y: auto;
+}
+
+.survey-fill-container {
+    width: 100%;
+    max-width: 680px;
+}
+
+.survey-fill-header {
+    margin-bottom: 1.5rem;
+}
+
+.survey-fill-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: white;
+}
+
+.survey-fill-brand .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.survey-fill-brand h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.survey-fill-brand span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.survey-fill-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 2.5rem;
+    border: 1px solid white;
+}
+
+.survey-fill-title-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.survey-fill-title-section h1 {
+    font-size: 1.375rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+}
+
+.survey-fill-title-section p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+/* 问卷题目 */
+.survey-fill-question {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.survey-fill-question:last-child {
+    border-bottom: none;
+}
+
+.survey-fill-question-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+}
+
+.survey-fill-question-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.survey-fill-required {
+    color: var(--danger);
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+}
+
+/* 评分题选项 */
+.survey-fill-rating-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.survey-fill-rating-option {
+    cursor: pointer;
+}
+
+.survey-fill-rating-option input {
+    display: none;
+}
+
+.survey-fill-rating-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    background: white;
+}
+
+.survey-fill-rating-option:hover .survey-fill-rating-btn {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #eef2ff;
+}
+
+.survey-fill-rating-option input:checked + .survey-fill-rating-btn {
+    border-color: var(--primary);
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+}
+
+/* 单选题选项 */
+.survey-fill-single-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.625rem;
+}
+
+.survey-fill-single-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: white;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+}
+
+.survey-fill-single-option::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-primary);
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.survey-fill-single-option:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #eef2ff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.survey-fill-single-option input {
+    display: none;
+}
+
+.survey-fill-radio-dot {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.survey-fill-single-option:hover .survey-fill-radio-dot {
+    border-color: var(--primary);
+}
+
+.survey-fill-single-option input:checked ~ .survey-fill-radio-dot {
+    border-color: white;
+    background: white;
+}
+
+.survey-fill-single-option input:checked ~ .survey-fill-radio-dot::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+}
+
+.survey-fill-single-option input:checked ~ span:last-child {
+    color: white;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.survey-fill-single-option:has(input:checked) {
+    border-color: var(--primary);
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    transform: translateY(-1px);
+}
+
+.survey-fill-single-option:has(input:checked) .survey-fill-radio-dot {
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
+.survey-fill-single-option:has(input:checked) .survey-fill-radio-dot::after {
+    background: white;
+}
+
+/* 文本题文本域 */
+.survey-fill-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+}
+
+.survey-fill-textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* 未回答题目错误高亮 */
+.survey-fill-question-error {
+    animation: shakeError 0.4s ease;
+}
+
+.survey-fill-question-error .survey-fill-question-title {
+    color: var(--danger);
+}
+
+.survey-fill-question-error .survey-fill-rating-btn {
+    border-color: #fca5a5;
+}
+
+.survey-fill-question-error .survey-fill-single-option {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+@keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+/* 提交按钮区 */
+.survey-fill-submit {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 页脚 */
+.survey-fill-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .survey-page-body {
+        padding: 1rem;
+    }
+
+    .survey-fill-card {
+        padding: 1.5rem;
+    }
+
+    .survey-fill-title-section h1 {
+        font-size: 1.125rem;
+    }
+
+    .survey-fill-rating-group {
+        flex-direction: column;
+    }
+
+    .survey-fill-single-group {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .survey-option-label {
+        width: 70px;
+        font-size: 0.75rem;
+    }
+
+    .survey-option-count {
+        width: 65px;
+        font-size: 0.75rem;
+    }
+
+    .survey-stats-summary {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .survey-stat-item {
+        min-width: 60px;
+        padding: 0.5rem 0.75rem;
+    }
+}

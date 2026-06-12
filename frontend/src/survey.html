@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>客户满意度调查 - 昆山飘得华电子材料有限公司</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body.survey-page-body {
+      height: auto;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body class="survey-page-body">
+  <div class="survey-fill-container">
+    <!-- 问卷头部 -->
+    <div class="survey-fill-header">
+      <div class="survey-fill-brand">
+        <div class="logo-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <div>
+          <h2>PDH Electronic</h2>
+          <span>客户满意度调查</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 问卷内容区 -->
+    <div class="survey-fill-card" id="surveyFillCard">
+      <!-- 问卷未找到或已关闭的提示 -->
+      <div id="surveyNotFound" style="display:none;">
+        <div style="text-align:center;padding:3rem 0;">
+          <i class="fa-solid fa-circle-exclamation" style="font-size:3rem;color:var(--warning);margin-bottom:1rem;display:block;"></i>
+          <h3 style="margin-bottom:0.5rem;">问卷不存在或已关闭</h3>
+          <p style="color:var(--text-muted);">请确认链接是否正确，或联系管理员获取新链接</p>
+        </div>
+      </div>
+
+      <!-- 问卷已提交成功提示 -->
+      <div id="surveySubmitted" style="display:none;">
+        <div style="text-align:center;padding:3rem 0;">
+          <i class="fa-solid fa-circle-check" style="font-size:3rem;color:var(--success);margin-bottom:1rem;display:block;"></i>
+          <h3 style="margin-bottom:0.5rem;">感谢您的参与！</h3>
+          <p style="color:var(--text-muted);">您的反馈对我们非常重要，我们会认真对待每一条建议</p>
+        </div>
+      </div>
+
+      <!-- 问卷填写表单 -->
+      <div id="surveyFillForm">
+        <div class="survey-fill-title-section">
+          <h1 id="surveyFillTitle">加载中...</h1>
+          <p id="surveyFillDesc"></p>
+        </div>
+
+        <div id="surveyFillQuestions">
+          <!-- 题目由 JS 动态渲染 -->
+        </div>
+
+        <div class="survey-fill-submit">
+          <button class="btn-primary btn-block" onclick="submitSurvey()" id="submitSurveyBtn">
+            <i class="fa-solid fa-paper-plane"></i> 提交问卷
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <div class="survey-fill-footer">
+      <span>&copy; 2026 昆山飘得华电子材料有限公司 · 客户满意度调查系统</span>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <script src="js/survey-fill.js"></script>
+</body>
+
+</html>
