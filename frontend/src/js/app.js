@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
     initDashboard();
     renderCustomerTable();
+    renderSurveyList();
     initCounters();
     initMobileMenu();
     
@@ -128,9 +129,14 @@ function initNavigation() {
             // Update Title
             const titleMap = {
                 'dashboard': '数据总览',
-                'customers': '客户管理'
+                'customers': '客户管理',
+                'surveys': '满意度调查'
             };
             pageTitle.innerText = titleMap[target];
+
+            if (target === 'surveys') {
+                renderSurveyList();
+            }
         });
     });
 }
@@ -504,3 +510,456 @@ window.showToast = function(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 };
+
+// ==================== 问卷管理系统 ====================
+let editingQuestions = [];
+
+window.renderSurveyList = function() {
+    const surveys = surveyManager.getAllSurveys();
+    const listContainer = document.getElementById('surveyList');
+    
+    let totalResponses = 0;
+    let totalRatingSum = 0;
+    let totalRatingCount = 0;
+
+    surveys.forEach(s => {
+        const resps = surveyManager.getResponsesBySurveyId(s.id);
+        totalResponses += resps.length;
+        
+        s.questions.forEach(q => {
+            if (q.type === QUESTION_TYPES.RATING) {
+                resps.forEach(r => {
+                    if (r.answers[q.id]) {
+                        totalRatingSum += parseInt(r.answers[q.id]) || 0;
+                        totalRatingCount++;
+                    }
+                });
+            }
+        });
+    });
+
+    document.getElementById('surveyTotalCount').innerText = surveys.length;
+    document.getElementById('surveyActiveCount').innerText = surveys.filter(s => s.status === 'active').length;
+    document.getElementById('surveyResponseCount').innerText = totalResponses;
+    document.getElementById('surveyAvgRating').innerText = totalRatingCount > 0 ? (totalRatingSum / totalRatingCount).toFixed(1) : '0.0';
+
+    if (surveys.length === 0) {
+        listContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <p>暂无问卷，点击上方按钮创建第一个问卷</p>
+            </div>
+        `;
+        return;
+    }
+
+    listContainer.innerHTML = surveys.map(survey => {
+        const responses = surveyManager.getResponsesBySurveyId(survey.id);
+        const createdDate = new Date(survey.createdAt).toLocaleDateString('zh-CN');
+        const statusClass = survey.status === 'active' ? 'active' : 'closed';
+        const statusText = survey.status === 'active' ? '进行中' : '已关闭';
+        const shareUrl = surveyManager.getShareUrl(survey.shareToken);
+        
+        let previewQuestions = survey.questions.slice(0, 3).map(q => {
+            const typeLabels = { rating: '评分', single: '单选', multiple: '多选', text: '文本' };
+            return `<span style="background:#f1f5f9;padding:2px 8px;border-radius:4px;font-size:0.75rem;">${typeLabels[q.type]}</span>`;
+        }).join(' ');
+
+        return `
+            <div class="survey-card-item ${survey.status === 'closed' ? 'closed' : ''}">
+                <div class="survey-card-header">
+                    <div>
+                        <div class="survey-card-title">${escapeHtml(survey.title)}</div>
+                        <div class="survey-card-desc">${escapeHtml(survey.description).substring(0, 100)}${survey.description.length > 100 ? '...' : ''}</div>
+                    </div>
+                    <span class="survey-status ${statusClass}">${statusText}</span>
+                </div>
+                <div class="survey-card-meta">
+                    <span><i class="fa-solid fa-calendar"></i> 创建于 ${createdDate}</span>
+                    <span><i class="fa-solid fa-question-circle"></i> ${survey.questions.length} 个问题</span>
+                    <span><i class="fa-solid fa-reply"></i> ${responses.length} 份回答</span>
+                    <span style="margin-left:auto;">问题类型: ${previewQuestions}</span>
+                </div>
+                <div class="survey-card-actions">
+                    <button class="btn-sm btn-outline btn-outline-primary" onclick="openShareModal('${survey.shareToken}')">
+                        <i class="fa-solid fa-share-nodes"></i> 分享链接
+                    </button>
+                    <button class="btn-sm btn-outline" onclick="window.open('${shareUrl}', '_blank')">
+                        <i class="fa-solid fa-eye"></i> 预览问卷
+                    </button>
+                    <button class="btn-sm btn-outline btn-outline-success" onclick="viewSurveyStats('${survey.id}')">
+                        <i class="fa-solid fa-chart-bar"></i> 查看统计
+                    </button>
+                    <button class="btn-sm btn-outline" onclick="editSurvey('${survey.id}')">
+                        <i class="fa-solid fa-pen-to-square"></i> 编辑
+                    </button>
+                    <button class="btn-sm btn-outline" onclick="toggleSurveyStatus('${survey.id}')">
+                        <i class="fa-solid fa-power-off"></i> ${survey.status === 'active' ? '关闭' : '开启'}
+                    </button>
+                    <button class="btn-sm btn-outline btn-outline-danger" onclick="deleteSurveyConfirm('${survey.id}')">
+                        <i class="fa-solid fa-trash"></i> 删除
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+};
+
+window.openSurveyEditor = function(surveyId = null) {
+    const modal = document.getElementById('surveyEditorModal');
+    const titleEl = document.getElementById('surveyEditorTitle');
+    const titleInput = document.getElementById('surveyTitle');
+    const descInput = document.getElementById('surveyDescription');
+    const idInput = document.getElementById('editSurveyId');
+
+    editingQuestions = [];
+
+    if (surveyId) {
+        const survey = surveyManager.getSurveyById(surveyId);
+        if (!survey) return;
+        titleEl.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> 编辑问卷';
+        titleInput.value = survey.title;
+        descInput.value = survey.description;
+        idInput.value = surveyId;
+        editingQuestions = JSON.parse(JSON.stringify(survey.questions));
+    } else {
+        titleEl.innerHTML = '<i class="fa-solid fa-clipboard-list"></i> 创建问卷';
+        titleInput.value = '';
+        descInput.value = '';
+        idInput.value = '';
+        editingQuestions = [
+            { id: 'q1', type: 'rating', title: '您对我们的服务整体满意度如何？', required: true, maxRating: 5 }
+        ];
+    }
+
+    renderQuestionEditor();
+    modal.classList.add('active');
+};
+
+window.editSurvey = function(surveyId) {
+    openSurveyEditor(surveyId);
+};
+
+window.closeSurveyEditor = function() {
+    document.getElementById('surveyEditorModal').classList.remove('active');
+};
+
+window.addQuestionToEditor = function() {
+    document.getElementById('questionTypeModal').classList.add('active');
+};
+
+window.closeQuestionTypeModal = function() {
+    document.getElementById('questionTypeModal').classList.remove('active');
+};
+
+window.selectQuestionType = function(qType) {
+    closeQuestionTypeModal();
+    editingQuestions.push({
+        id: 'q' + (editingQuestions.length + 1),
+        type: qType,
+        title: '',
+        required: false,
+        options: (qType === 'single' || qType === 'multiple') ? ['选项1', '选项2'] : [],
+        maxRating: 5,
+        placeholder: ''
+    });
+    renderQuestionEditor();
+};
+
+window.renderQuestionEditor = function() {
+    const container = document.getElementById('questionEditorList');
+    const typeNames = { rating: '评分题', single: '单选题', multiple: '多选题', text: '文本题' };
+
+    container.innerHTML = editingQuestions.map((q, index) => {
+        let optionsHtml = '';
+        if (q.type === 'single' || q.type === 'multiple') {
+            optionsHtml = `<div class="option-editor-list">`;
+            q.options.forEach((opt, optIndex) => {
+                optionsHtml += `
+                    <div class="option-editor-item">
+                        <input type="text" value="${escapeHtml(opt)}" placeholder="选项 ${optIndex + 1}" onchange="updateQuestionOption(${index}, ${optIndex}, this.value)">
+                        <button type="button" class="btn-sm btn-outline btn-outline-danger" onclick="removeQuestionOption(${index}, ${optIndex})" title="删除选项">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            optionsHtml += `
+                <button type="button" class="btn-sm btn-outline" onclick="addQuestionOption(${index})" style="margin-top:0.25rem;">
+                    <i class="fa-solid fa-plus"></i> 添加选项
+                </button>
+            </div>`;
+        }
+
+        return `
+            <div class="question-editor-item">
+                <div class="question-editor-header">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <span class="question-editor-title">问题 ${index + 1}</span>
+                        <select onchange="changeQuestionType(${index}, this.value)" style="padding:0.25rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-md); font-size:0.8rem;">
+                            <option value="rating" ${q.type === 'rating' ? 'selected' : ''}>⭐ 评分题</option>
+                            <option value="single" ${q.type === 'single' ? 'selected' : ''}>◉ 单选题</option>
+                            <option value="multiple" ${q.type === 'multiple' ? 'selected' : ''}>☑ 多选题</option>
+                            <option value="text" ${q.type === 'text' ? 'selected' : ''}>📝 文本题</option>
+                        </select>
+                    </div>
+                    <div class="question-editor-actions">
+                        <button type="button" title="上移" onclick="moveQuestion(${index}, -1)" ${index === 0 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-up"></i>
+                        </button>
+                        <button type="button" title="下移" onclick="moveQuestion(${index}, 1)" ${index === editingQuestions.length - 1 ? 'disabled' : ''}>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </button>
+                        <button type="button" class="danger" title="删除" onclick="removeQuestion(${index})">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom: 0.5rem;">
+                    <input type="text" value="${escapeHtml(q.title)}" placeholder="请输入问题标题" 
+                           onchange="updateQuestionField(${index}, 'title', this.value)" style="width:100%; padding:0.625rem; border:1px solid var(--border-color); border-radius:var(--radius-md);">
+                </div>
+                <label class="checkbox-label">
+                    <input type="checkbox" ${q.required ? 'checked' : ''} onchange="updateQuestionField(${index}, 'required', this.checked)">
+                    必填项
+                </label>
+                ${optionsHtml}
+            </div>
+        `;
+    }).join('');
+};
+
+window.changeQuestionType = function(qIndex, newType) {
+    const q = editingQuestions[qIndex];
+    q.type = newType;
+    if ((newType === 'single' || newType === 'multiple') && (!q.options || q.options.length === 0)) {
+        q.options = ['选项1', '选项2'];
+    }
+    renderQuestionEditor();
+};
+
+window.updateQuestionField = function(qIndex, field, value) {
+    editingQuestions[qIndex][field] = value;
+};
+
+window.updateQuestionOption = function(qIndex, optIndex, value) {
+    editingQuestions[qIndex].options[optIndex] = value;
+};
+
+window.addQuestionOption = function(qIndex) {
+    editingQuestions[qIndex].options.push('新选项');
+    renderQuestionEditor();
+};
+
+window.removeQuestionOption = function(qIndex, optIndex) {
+    if (editingQuestions[qIndex].options.length <= 1) {
+        showToast('至少保留一个选项', 'warning');
+        return;
+    }
+    editingQuestions[qIndex].options.splice(optIndex, 1);
+    renderQuestionEditor();
+};
+
+window.moveQuestion = function(qIndex, direction) {
+    const newIndex = qIndex + direction;
+    if (newIndex < 0 || newIndex >= editingQuestions.length) return;
+    [editingQuestions[qIndex], editingQuestions[newIndex]] = [editingQuestions[newIndex], editingQuestions[qIndex]];
+    renderQuestionEditor();
+};
+
+window.removeQuestion = function(qIndex) {
+    if (editingQuestions.length <= 1) {
+        showToast('至少保留一个问题', 'warning');
+        return;
+    }
+    editingQuestions.splice(qIndex, 1);
+    renderQuestionEditor();
+};
+
+window.saveSurveyFromEditor = function() {
+    const title = document.getElementById('surveyTitle').value.trim();
+    const description = document.getElementById('surveyDescription').value.trim();
+    const editId = document.getElementById('editSurveyId').value;
+
+    if (!title) {
+        showToast('请填写问卷标题', 'error');
+        return;
+    }
+
+    const validQuestions = editingQuestions.filter(q => q.title.trim());
+    if (validQuestions.length === 0) {
+        showToast('请至少添加一个有效问题', 'error');
+        return;
+    }
+
+    const surveyData = { title, description, questions: validQuestions };
+
+    if (editId) {
+        surveyManager.updateSurvey(editId, surveyData);
+        showToast('问卷已更新', 'success');
+    } else {
+        surveyManager.createSurvey(surveyData);
+        showToast('问卷已创建', 'success');
+    }
+
+    closeSurveyEditor();
+    renderSurveyList();
+};
+
+window.toggleSurveyStatus = function(surveyId) {
+    surveyManager.toggleSurveyStatus(surveyId);
+    renderSurveyList();
+    showToast('问卷状态已更新', 'success');
+};
+
+window.deleteSurveyConfirm = function(surveyId) {
+    const survey = surveyManager.getSurveyById(surveyId);
+    if (!survey) return;
+    
+    document.getElementById('confirmMessage').innerText = `确定要删除问卷"${survey.title}"吗？所有回答数据也将被删除。`;
+    document.getElementById('confirmModal').classList.add('active');
+    
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const newBtn = actionBtn.cloneNode(true);
+    actionBtn.parentNode.replaceChild(newBtn, actionBtn);
+    newBtn.onclick = () => {
+        surveyManager.deleteSurvey(surveyId);
+        closeConfirmModal();
+        renderSurveyList();
+        showToast('问卷已删除', 'warning');
+    };
+};
+
+window.openShareModal = function(token) {
+    const shareUrl = window.location.origin + window.location.pathname.replace('index.html', '') + surveyManager.getShareUrl(token);
+    document.getElementById('shareLinkInput').value = shareUrl;
+    document.getElementById('shareLinkModal').classList.add('active');
+};
+
+window.closeShareModal = function() {
+    document.getElementById('shareLinkModal').classList.remove('active');
+};
+
+window.copyShareLink = function() {
+    const input = document.getElementById('shareLinkInput');
+    input.select();
+    document.execCommand('copy');
+    showToast('链接已复制到剪贴板', 'success');
+};
+
+window.viewSurveyStats = function(surveyId) {
+    const stats = surveyManager.getSurveyStats(surveyId);
+    if (!stats) return;
+
+    const survey = surveyManager.getSurveyById(surveyId);
+    const container = document.getElementById('surveyStatsContent');
+
+    let totalRatingAvg = 0;
+    let ratingCount = 0;
+    Object.values(stats.questionStats).forEach(qs => {
+        if (qs.question.type === QUESTION_TYPES.RATING && qs.average) {
+            totalRatingAvg += parseFloat(qs.average);
+            ratingCount++;
+        }
+    });
+    const overallAvg = ratingCount > 0 ? (totalRatingAvg / ratingCount).toFixed(2) : '0.00';
+
+    let html = `
+        <div class="stats-overview">
+            <div class="stats-overview-card">
+                <div class="value">${stats.totalResponses}</div>
+                <div class="label">总回答数</div>
+            </div>
+            <div class="stats-overview-card">
+                <div class="value">${overallAvg}</div>
+                <div class="label">平均评分</div>
+            </div>
+            <div class="stats-overview-card">
+                <div class="value">${survey.questions.length}</div>
+                <div class="label">问题数量</div>
+            </div>
+        </div>
+    `;
+
+    survey.questions.forEach(question => {
+        const qs = stats.questionStats[question.id];
+        html += `<div class="stat-question-block">`;
+        html += `<div class="stat-question-title">${escapeHtml(question.title)}</div>`;
+
+        if (question.type === QUESTION_TYPES.RATING) {
+            html += `<div class="average-rating">
+                <span class="value">${qs.average}</span>
+                <span class="stars">${'★'.repeat(Math.round(qs.average))}${'☆'.repeat(5 - Math.round(qs.average))}</span>
+                <span style="font-size:0.8rem;color:var(--text-muted);">${qs.responseCount} 人评分</span>
+            </div>`;
+            html += `<div>`;
+            for (let i = 5; i >= 1; i--) {
+                const count = qs.distribution[i - 1] || 0;
+                const pct = qs.responseCount > 0 ? (count / qs.responseCount * 100) : 0;
+                html += `
+                    <div class="rating-bars">
+                        <span class="rating-label">${i} 星</span>
+                        <div class="rating-bar-container">
+                            <div class="rating-bar" style="width: ${pct}%"></div>
+                        </div>
+                        <span class="rating-count">${count}</span>
+                    </div>
+                `;
+            }
+            html += `</div>`;
+        } else if (question.type === QUESTION_TYPES.SINGLE || question.type === QUESTION_TYPES.MULTIPLE) {
+            const label = question.type === QUESTION_TYPES.SINGLE ? '选择' : '选择';
+            question.options.forEach(opt => {
+                const data = qs.data[opt] || { count: 0, percentage: 0 };
+                html += `
+                    <div class="percentage-bar-item">
+                        <div class="percentage-bar-header">
+                            <span>${escapeHtml(opt)}</span>
+                            <span>${data.count} 人 (${data.percentage}%)</span>
+                        </div>
+                        <div class="percentage-bar-container">
+                            <div class="percentage-bar" style="width: ${data.percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            });
+        } else if (question.type === QUESTION_TYPES.TEXT) {
+            const texts = qs.textResponses || [];
+            if (texts.length === 0) {
+                html += `<p style="color:var(--text-muted); font-size:0.875rem;">暂无文字反馈</p>`;
+            } else {
+                html += `<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.5rem;">${texts.length} 条文字反馈</p>`;
+                html += `<div class="text-response-list">`;
+                texts.forEach(t => {
+                    html += `<div class="text-response-item">${escapeHtml(t)}</div>`;
+                });
+                html += `</div>`;
+            }
+        }
+
+        html += `</div>`;
+    });
+
+    if (stats.totalResponses === 0) {
+        html = `
+            <div class="empty-state">
+                <i class="fa-solid fa-chart-bar"></i>
+                <p>暂无回答数据，分享问卷链接后即可查看统计</p>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+    document.getElementById('surveyStatsModal').classList.add('active');
+};
+
+window.closeSurveyStats = function() {
+    document.getElementById('surveyStatsModal').classList.remove('active');
+};
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}

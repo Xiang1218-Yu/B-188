@@ -34,6 +34,10 @@
           <i class="fa-solid fa-users"></i>
           <span>客户管理</span>
         </a>
+        <a href="#" class="nav-item" data-tab="surveys">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>满意度调查</span>
+        </a>
         <a href="#" class="nav-item" onclick="showToast('功能开发中...', 'info')">
           <i class="fa-solid fa-box-open"></i>
           <span>产品列表</span>
@@ -169,6 +173,54 @@
           </div>
         </div>
       </div>
+
+      <!-- 满意度调查管理视图 -->
+      <div id="surveys-view" class="view-section">
+        <div class="survey-stats-grid" id="surveyStatsOverview">
+          <div class="survey-stat-card">
+            <div class="survey-stat-icon indigo"><i class="fa-solid fa-clipboard-list"></i></div>
+            <div class="survey-stat-info">
+              <h3>问卷总数</h3>
+              <p id="surveyTotalCount">0</p>
+            </div>
+          </div>
+          <div class="survey-stat-card">
+            <div class="survey-stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="survey-stat-info">
+              <h3>进行中</h3>
+              <p id="surveyActiveCount">0</p>
+            </div>
+          </div>
+          <div class="survey-stat-card">
+            <div class="survey-stat-icon amber"><i class="fa-solid fa-reply"></i></div>
+            <div class="survey-stat-info">
+              <h3>总回答数</h3>
+              <p id="surveyResponseCount">0</p>
+            </div>
+          </div>
+          <div class="survey-stat-card">
+            <div class="survey-stat-icon rose"><i class="fa-solid fa-star"></i></div>
+            <div class="survey-stat-info">
+              <h3>平均满意度</h3>
+              <p id="surveyAvgRating">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-controls" style="border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 600;">问卷列表</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">创建和管理客户满意度调查问卷</p>
+          </div>
+          <button class="btn-primary" onclick="openSurveyEditor()">
+            <i class="fa-solid fa-plus"></i> 创建新问卷
+          </button>
+        </div>
+
+        <div class="survey-list" id="surveyList" style="padding-top: 1rem;">
+          <!-- 问卷列表由JS渲染 -->
+        </div>
+      </div>
     </main>
   </div>
 
@@ -251,11 +303,118 @@
     </div>
   </div>
 
+  <!-- Survey Editor Modal -->
+  <div class="modal-overlay" id="surveyEditorModal">
+    <div class="modal-container wide-modal">
+      <div class="modal-header">
+        <h3 id="surveyEditorTitle"><i class="fa-solid fa-clipboard-list"></i> 创建问卷</h3>
+        <button class="close-btn" onclick="closeSurveyEditor()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="surveyForm">
+          <input type="hidden" id="editSurveyId">
+          <div class="form-group">
+            <label>问卷标题</label>
+            <input type="text" id="surveyTitle" required placeholder="例如：2026年客户满意度调查">
+          </div>
+          <div class="form-group">
+            <label>问卷说明</label>
+            <textarea id="surveyDescription" class="text-input" style="min-height: 80px;" placeholder="向客户说明问卷目的和填写须知..."></textarea>
+          </div>
+
+          <div style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-weight: 600; font-size: 0.9rem;">问题列表</label>
+          </div>
+
+          <div class="question-editor-list" id="questionEditorList">
+          </div>
+
+          <button type="button" class="btn-add-question" onclick="addQuestionToEditor()">
+            <i class="fa-solid fa-plus"></i> 添加问题
+          </button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeSurveyEditor()">取消</button>
+        <button class="btn-primary" onclick="saveSurveyFromEditor()">保存问卷</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Survey Stats Modal -->
+  <div class="modal-overlay" id="surveyStatsModal">
+    <div class="modal-container stats-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-chart-bar"></i> 问卷统计分析</h3>
+        <button class="close-btn" onclick="closeSurveyStats()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body" id="surveyStatsContent">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeSurveyStats()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Link Modal -->
+  <div class="modal-overlay" id="shareLinkModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-share-nodes"></i> 分享问卷链接</h3>
+        <button class="close-btn" onclick="closeShareModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">复制以下链接发送给客户，客户无需登录即可填写问卷：</p>
+        <div class="share-link-box" style="margin-top: 0;">
+          <input type="text" class="share-link-input" id="shareLinkInput" readonly>
+          <button type="button" class="btn-primary btn-sm" onclick="copyShareLink()">
+            <i class="fa-solid fa-copy"></i> 复制
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question Type Selector Modal -->
+  <div class="modal-overlay" id="questionTypeModal">
+    <div class="modal-container small-modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-plus-circle"></i> 选择问题类型</h3>
+        <button class="close-btn" onclick="closeQuestionTypeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="question-type-selector">
+          <div class="question-type-option" onclick="selectQuestionType('rating')">
+            <i class="fa-solid fa-star" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #fbbf24;"></i>
+            <div><strong>评分题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">5星满意度评分</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('single')">
+            <i class="fa-solid fa-circle-dot" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #3b82f6;"></i>
+            <div><strong>单选题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">单选一个选项</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('multiple')">
+            <i class="fa-solid fa-square-check" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #10b981;"></i>
+            <div><strong>多选题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">可多选多个选项</div>
+          </div>
+          <div class="question-type-option" onclick="selectQuestionType('text')">
+            <i class="fa-solid fa-align-left" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #8b5cf6;"></i>
+            <div><strong>文本题</strong></div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">开放式文字回答</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container"></div>
 
   <!-- Scripts (BootCDN) -->
   <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="js/survey.js"></script>
   <script src="js/app.js"></script>
 </body>
 
